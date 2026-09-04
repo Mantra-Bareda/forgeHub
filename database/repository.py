@@ -326,3 +326,31 @@ class ChatRepository(Repository):
                 VALUES (?, ?, ?)
             """, (project_id, role, content))
             conn.commit()
+
+class MemoryRepository(Repository):
+    def get_memories(self, category=None):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            if category:
+                cursor.execute("SELECT * FROM memories WHERE category = ? ORDER BY created_at DESC", (category,))
+            else:
+                cursor.execute("SELECT * FROM memories ORDER BY created_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_memory(self, category, content, importance="Medium"):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            # Basic deduplication logic
+            cursor.execute("SELECT id FROM memories WHERE content = ?", (content,))
+            if not cursor.fetchone():
+                cursor.execute("""
+                    INSERT INTO memories (category, content, importance)
+                    VALUES (?, ?, ?)
+                """, (category, content, importance))
+                conn.commit()
+
+    def delete_memory(self, memory_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
+            conn.commit()

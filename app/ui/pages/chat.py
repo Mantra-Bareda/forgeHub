@@ -138,11 +138,29 @@ class AIChatPage(QWidget):
         # Get context
         context = self.get_recent_context()
         
-        # Start worker
+        # Start chat worker
         worker = ChatWorker(self.router, text, context)
         worker.signals.finished.connect(self.on_ai_response)
         worker.signals.error.connect(self.on_ai_error)
         self.thread_pool.start(worker)
+        
+        # Auto-extract memories in the background occasionally
+        history = self.repo.get_chat_history(limit=20)
+        # If user just sent the 5th, 10th, 15th message etc.
+        user_messages = [m for m in history if m["role"] == "user"]
+        if len(user_messages) > 0 and len(user_messages) % 5 == 0:
+            from app.memory.extractor import MemoryExtractor
+            
+            class BackgroundExtractor(QRunnable):
+                def __init__(self, db_mgr, hist):
+                    super().__init__()
+                    self.db = db_mgr
+                    self.hist = hist
+                def run(self):
+                    extractor = MemoryExtractor(self.db)
+                    extractor.extract_memories(self.hist)
+                    
+            self.thread_pool.start(BackgroundExtractor(self.db, history))
         
     def on_ai_response(self, response_text):
         self.send_btn.setEnabled(True)

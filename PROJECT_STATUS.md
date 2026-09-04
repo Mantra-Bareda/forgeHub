@@ -65,11 +65,17 @@
   - Implemented `ChatRepository` to persistently log conversation history locally.
   - *Files updated/created*: `app/ui/pages/chat.py`, `database/repository.py`, `app/ui/main_window.py`.
 
+### Immediate Priority
+- [x] **Phase 10: Persistent Memory System**
+  - Created the `MemoryRepository` to securely store user facts.
+  - Built the backend Context Compiler (`MemoryExtractor`) which utilizes Lightweight AI models to dynamically parse chat history into JSON memory points.
+  - Linked the AI Chat Shell to automatically extract memory points asynchronously every 5 messages.
+  - Implemented the `MemoryPage` UI to visualize and manage extracted facts.
+  - *Files updated/created*: `app/memory/extractor.py`, `app/ui/pages/memory.py`, `app/ui/pages/chat.py`, `database/repository.py`, `app/ui/main_window.py`.
+
 ### Next Steps (Immediate)
-- [ ] **Phase 10: Persistent Memory System**
-  - Create the `memories` database layer.
-  - Build the backend Context Compiler that summarizes old chat logs.
-  - Link the AI Chat Shell to automatically extract memory points.
-- **Phase 13 - Phase 16:** Implementation of the Persistent Memory System, Context Compiler, and AI Chat UI integrations.
+- [ ] **Phase 11: Advanced Prompting & Context Compilation**
+  - Inject the extracted memory points seamlessly into the `ModelRouter` system prompts so the AI inherently "remembers" the user across separate chats.
+  - Improve prompt templates for general chat.
 - **Phase 17 - Phase 20:** Content Generation flows (GitHub READMEs, LinkedIn Content) and the Professional Posting Advisor logic.
 - **Phase 21 - Phase 28:** System Polish, Testing, Packaging, and UI/UX Finalizations.
