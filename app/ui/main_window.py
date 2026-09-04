@@ -46,6 +46,6 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(ProfilePage(self.db_manager))
         self.stacked_widget.addWidget(ContentPage())
         self.stacked_widget.addWidget(MemoryPage())
-        self.stacked_widget.addWidget(AIChatPage())
+        self.stacked_widget.addWidget(AIChatPage(self.db_manager))
         self.stacked_widget.addWidget(AIProvidersPage(self.db_manager))
         self.stacked_widget.addWidget(SettingsPage())

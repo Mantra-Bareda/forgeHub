@@ -301,3 +301,28 @@ class ProviderRepository(Repository):
             
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
+
+class ChatRepository(Repository):
+    def get_chat_history(self, project_id=None, limit=50):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            if project_id:
+                cursor.execute("""
+                    SELECT role, content, created_at FROM conversations 
+                    WHERE project_id = ? ORDER BY created_at ASC LIMIT ?
+                """, (project_id, limit))
+            else:
+                cursor.execute("""
+                    SELECT role, content, created_at FROM conversations 
+                    WHERE project_id IS NULL ORDER BY created_at ASC LIMIT ?
+                """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def save_message(self, role, content, project_id=None):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO conversations (project_id, role, content)
+                VALUES (?, ?, ?)
+            """, (project_id, role, content))
+            conn.commit()

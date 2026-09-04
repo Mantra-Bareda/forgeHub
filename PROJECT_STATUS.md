@@ -58,11 +58,18 @@
   - Designed fallback loops that automatically cycle through remaining valid API models if a rate limit or timeout is encountered.
   - *Files updated/created*: `app/ai/router.py`, `app/ai/__init__.py`, `database/repository.py`.
 
+### Immediate Priority
+- [x] **Phase 9: AI Chat Interface Shell**
+  - Built the frontend UI for AI Chat with custom scrolling message bubbles.
+  - Connected the `ModelRouter` to the UI via asynchronous thread pools.
+  - Implemented `ChatRepository` to persistently log conversation history locally.
+  - *Files updated/created*: `app/ui/pages/chat.py`, `database/repository.py`, `app/ui/main_window.py`.
+
 ### Next Steps (Immediate)
-- [ ] **Phase 9: AI Chat Interface Shell**
-  - Build the frontend UI for AI Chat.
-  - Display current active model and token usage visually.
-  - Allow user interaction without hooking it fully into memory compilation yet.
+- [ ] **Phase 10: Persistent Memory System**
+  - Create the `memories` database layer.
+  - Build the backend Context Compiler that summarizes old chat logs.
+  - Link the AI Chat Shell to automatically extract memory points.
 - **Phase 13 - Phase 16:** Implementation of the Persistent Memory System, Context Compiler, and AI Chat UI integrations.
 - **Phase 17 - Phase 20:** Content Generation flows (GitHub READMEs, LinkedIn Content) and the Professional Posting Advisor logic.
 - **Phase 21 - Phase 28:** System Polish, Testing, Packaging, and UI/UX Finalizations.
