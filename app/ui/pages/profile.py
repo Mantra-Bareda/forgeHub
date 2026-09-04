@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QPushButton, QTextEdit, 
                                  QScrollArea, QFrame, QListWidget, QListWidgetItem,
-                                 QLineEdit, QComboBox, QMessageBox)
+                                 QLineEdit, QComboBox, QMessageBox, QMenu)
 from PySide6.QtCore import Qt
 from database.repository import ProfileRepository
 from app.ui.components.achievement_dialog import AchievementDialog
@@ -32,7 +32,7 @@ class ProfilePage(QWidget):
         
         # 1. Project Stats
         self.stats_label = QLabel()
-        self.stats_label.setStyleSheet("font-size: 14px; color: #555;")
+        self.stats_label.setStyleSheet("font-size: 14px;")
         self.layout.addWidget(self.stats_label)
         
         # 2. About & Goals
@@ -93,6 +93,11 @@ class ProfilePage(QWidget):
         self.github_input.setMaximumHeight(60)
         self.layout.addWidget(self.github_input)
         
+        self.layout.addWidget(QLabel("<b>Content Preferences (Tone, style, formats):</b>"))
+        self.content_input = QTextEdit()
+        self.content_input.setMaximumHeight(60)
+        self.layout.addWidget(self.content_input)
+        
         self.layout.addWidget(QLabel("<b>Content to Avoid (e.g. Generic motivation):</b>"))
         self.avoid_input = QTextEdit()
         self.avoid_input.setMaximumHeight(60)
@@ -121,11 +126,12 @@ class ProfilePage(QWidget):
     def load_data(self):
         # Load profile text fields
         profile = self.repo.get_profile()
-        self.about_input.setText(profile.get("about", ""))
-        self.goals_input.setText(profile.get("professional_goals", ""))
-        self.linkedin_input.setText(profile.get("linkedin_preferences", ""))
-        self.github_input.setText(profile.get("github_preferences", ""))
-        self.avoid_input.setText(profile.get("things_to_avoid", ""))
+        self.about_input.setText(profile.get("about") or "")
+        self.goals_input.setText(profile.get("professional_goals") or "")
+        self.linkedin_input.setText(profile.get("linkedin_preferences") or "")
+        self.github_input.setText(profile.get("github_preferences") or "")
+        self.content_input.setText(profile.get("content_preferences") or "")
+        self.avoid_input.setText(profile.get("things_to_avoid") or "")
         
         # Load stats
         stats = self.repo.get_project_stats()
@@ -152,7 +158,6 @@ class ProfilePage(QWidget):
             self.load_skills()
             
     def skill_context_menu(self, position):
-        from PySide6.QtWidgets import QMenu
         item = self.skills_list.itemAt(position)
         if not item: return
         
@@ -179,7 +184,6 @@ class ProfilePage(QWidget):
             self.load_achievements()
 
     def achievement_context_menu(self, position):
-        from PySide6.QtWidgets import QMenu
         item = self.achievements_list.itemAt(position)
         if not item: return
         
@@ -197,6 +201,7 @@ class ProfilePage(QWidget):
             "professional_goals": self.goals_input.toPlainText().strip(),
             "linkedin_preferences": self.linkedin_input.toPlainText().strip(),
             "github_preferences": self.github_input.toPlainText().strip(),
+            "content_preferences": self.content_input.toPlainText().strip(),
             "things_to_avoid": self.avoid_input.toPlainText().strip()
         }
         self.repo.update_profile(data)

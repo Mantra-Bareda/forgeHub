@@ -36,6 +36,12 @@
   - Built `MemoryExtractor` using Lightweight AI models to extract JSON facts from chats.
   - Designed `MemoryPage` UI to view, extract, and manage memory points.
 
+## 🛠️ Recent Fixes & Hardening (Audit Results)
+- Completed a comprehensive Phase 1-10 codebase audit resolving 7 critical bugs.
+- **Data Integrity:** Fixed Profile `content_preferences` data loss and `NoneType` crashes on SQL NULL fields.
+- **AI Architecture:** Fixed Router status mismatch, rate-limit dead code, and chat history fetching logic.
+- **UI & UX:** Implemented dynamic theme switcher in `SettingsPage`, built functional `DashboardPage`, and corrected Chat light/dark text contrast.
+
 ### Next Steps (Immediate)
 - [ ] **Phase 11: Advanced Prompting & Context Compilation**
   - Inject the extracted memory points seamlessly into the `ModelRouter` system prompts so the AI inherently "remembers" the user across separate chats.

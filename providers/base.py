@@ -7,35 +7,42 @@ class AIProvider(ABC):
         self.api_key = api_key
         self.status = "AVAILABLE"
         self.client = httpx.Client(timeout=30.0)
+
+    def authenticate(self) -> bool:
+        """Validates the API key. Alias for test_key."""
+        return self.test_key()
         
     @abstractmethod
     def test_key(self) -> bool:
-        """Tests if the API key is valid."""
         pass
         
     @abstractmethod
     def discover_models(self) -> List[Dict[str, Any]]:
-        """Fetches available models for this provider/key."""
         pass
         
     @abstractmethod
     def get_model_info(self, model_id: str) -> Optional[Dict[str, Any]]:
-        """Returns capabilities and context limits of a specific model."""
         pass
         
     @abstractmethod
     def generate(self, model_id: str, prompt: str, system_prompt: str = "", context: str = "", max_tokens: int = 1024) -> str:
-        """Executes an AI generation request."""
         pass
         
     def handle_error(self, error: Exception) -> str:
-        """Translates provider-specific errors into standard app states."""
         if isinstance(error, httpx.HTTPStatusError):
-            if error.response.status_code == 401:
+            code = error.response.status_code
+            if code in (401, 403):
                 self.status = "INVALID_KEY"
-            elif error.response.status_code == 429:
+            elif code == 400:
+                # Many providers return 400 for invalid API keys
+                body = error.response.text.lower()
+                if "api_key" in body or "invalid" in body or "unauthorized" in body:
+                    self.status = "INVALID_KEY"
+                else:
+                    self.status = "API_ERROR"
+            elif code == 429:
                 self.status = "LIMITED"
-            elif error.response.status_code >= 500:
+            elif code >= 500:
                 self.status = "PROVIDER_ERROR"
             else:
                 self.status = "API_ERROR"
@@ -45,8 +52,18 @@ class AIProvider(ABC):
             self.status = "NETWORK_ERROR"
         else:
             self.status = "UNKNOWN_ERROR"
-            
         return self.status
         
     def get_status(self) -> str:
         return self.status
+
+    def close(self):
+        """Closes the underlying HTTP client."""
+        if self.client:
+            self.client.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()

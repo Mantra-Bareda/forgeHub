@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-import httpx
 from providers.base import AIProvider
 
 class GeminiProvider(AIProvider):
@@ -7,7 +6,6 @@ class GeminiProvider(AIProvider):
 
     def test_key(self) -> bool:
         try:
-            # We can request models to verify the key
             response = self.client.get(f"{self.BASE_URL}?key={self.api_key}")
             response.raise_for_status()
             self.status = "AVAILABLE"
@@ -24,7 +22,6 @@ class GeminiProvider(AIProvider):
             models = []
             for m in data.get("models", []):
                 if "generateContent" in m.get("supportedGenerationMethods", []):
-                    # Classify based on common Gemini model names
                     name = m.get("name", "").split("/")[-1]
                     cat = "General"
                     if "flash" in name.lower():
@@ -35,7 +32,7 @@ class GeminiProvider(AIProvider):
                     models.append({
                         "model_id": name,
                         "name": m.get("displayName", name),
-                        "context_size": m.get("inputTokenLimit", 8192),
+                        "context_size": m.get("inputTokenLimit", 32768),
                         "category": cat,
                         "availability": "AVAILABLE"
                     })
@@ -53,7 +50,7 @@ class GeminiProvider(AIProvider):
             return {
                 "model_id": model_id,
                 "name": m.get("displayName", model_id),
-                "context_size": m.get("inputTokenLimit", 8192)
+                "context_size": m.get("inputTokenLimit", 32768)
             }
         except Exception as e:
             self.handle_error(e)
@@ -83,7 +80,11 @@ class GeminiProvider(AIProvider):
             if not candidates:
                 return ""
             
-            parts = candidates[0].get("content", {}).get("parts", [])
+            content = candidates[0].get("content")
+            if not content:
+                return ""
+            
+            parts = content.get("parts", [])
             text = "".join([p.get("text", "") for p in parts])
             self.status = "AVAILABLE"
             return text

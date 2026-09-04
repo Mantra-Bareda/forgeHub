@@ -1,7 +1,6 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QLineEdit, QTextEdit, QComboBox, 
                                  QPushButton, QMessageBox)
-from PySide6.QtCore import Qt
 
 class ProjectDialog(QDialog):
     def __init__(self, parent=None, project_data=None):
@@ -37,9 +36,9 @@ class ProjectDialog(QDialog):
         # Pre-fill if editing
         if self.project_data:
             self.name_input.setText(self.project_data.get("name", ""))
-            self.desc_input.setText(self.project_data.get("description", ""))
-            self.tech_input.setText(self.project_data.get("technology_stack", ""))
-            status = self.project_data.get("status", "Planning")
+            self.desc_input.setText(self.project_data.get("description") or "")
+            self.tech_input.setText(self.project_data.get("technology_stack") or "")
+            status = self.project_data.get("status") or "Planning"
             idx = self.status_combo.findText(status)
             if idx >= 0:
                 self.status_combo.setCurrentIndex(idx)

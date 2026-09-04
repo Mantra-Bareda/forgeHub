@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-import httpx
 from providers.base import AIProvider
 
 class CerebrasProvider(AIProvider):
@@ -26,11 +25,17 @@ class CerebrasProvider(AIProvider):
             models = []
             for m in data.get("data", []):
                 name = m.get("id", "")
+                cat = "General"
+                if "8b" in name.lower():
+                    cat = "Lightweight"
+                elif "70b" in name.lower():
+                    cat = "Reasoning"
+
                 models.append({
                     "model_id": name,
                     "name": name,
-                    "context_size": 8192, # Cerebras currently serves LLaMA3 models typically at 8k
-                    "category": "General",
+                    "context_size": m.get("context_window", 8192),
+                    "category": cat,
                     "availability": "AVAILABLE"
                 })
             self.status = "AVAILABLE"
@@ -47,7 +52,7 @@ class CerebrasProvider(AIProvider):
             return {
                 "model_id": m.get("id"),
                 "name": m.get("id"),
-                "context_size": 8192
+                "context_size": m.get("context_window", 8192)
             }
         except Exception as e:
             self.handle_error(e)
@@ -79,7 +84,7 @@ class CerebrasProvider(AIProvider):
             if not choices:
                 return ""
                 
-            text = choices[0].get("message", {}).get("content", "")
+            text = choices[0].get("message", {}).get("content") or ""
             self.status = "AVAILABLE"
             return text
         except Exception as e:

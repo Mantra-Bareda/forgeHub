@@ -109,9 +109,9 @@ class ProjectDetailWidget(QWidget):
             return
             
         self.title_label.setText(self.project_data["name"])
-        self.desc_label.setText(self.project_data.get("description", "No description provided."))
-        self.tech_label.setText(self.project_data.get("technology_stack", "None"))
-        self.status_label.setText(self.project_data.get("status", "Unknown"))
+        self.desc_label.setText(self.project_data.get("description") or "No description provided.")
+        self.tech_label.setText(self.project_data.get("technology_stack") or "None")
+        self.status_label.setText(self.project_data.get("status") or "Unknown")
         
         self.load_tasks()
         self.load_docs()

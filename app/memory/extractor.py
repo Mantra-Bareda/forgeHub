@@ -1,4 +1,5 @@
 import json
+import re
 import logging
 from app.ai.router import ModelRouter
 from database.repository import MemoryRepository
@@ -34,7 +35,6 @@ class MemoryExtractor:
         """
         
         try:
-            # We prefer a Lightweight model for background processing to save tokens/time
             response = self.router.route_request(
                 prompt=context_str,
                 category="Lightweight", 
@@ -42,22 +42,24 @@ class MemoryExtractor:
                 max_tokens=1024
             )
             
-            # Clean response (often models return ```json ... ```)
-            clean_resp = response.strip()
-            if clean_resp.startswith("```json"):
-                clean_resp = clean_resp[7:]
-            if clean_resp.startswith("```"):
-                clean_resp = clean_resp[3:]
-            if clean_resp.endswith("```"):
-                clean_resp = clean_resp[:-3]
+            # Extract JSON array from response using regex (handles preamble text and code fences)
+            match = re.search(r'\[.*\]', response, re.DOTALL)
+            if not match:
+                return
                 
-            clean_resp = clean_resp.strip()
-            
+            clean_resp = match.group(0).strip()
             if not clean_resp:
                 return
                 
             memories = json.loads(clean_resp)
+            
+            # Ensure we got a list
+            if not isinstance(memories, list):
+                return
+                
             for m in memories:
+                if not isinstance(m, dict):
+                    continue
                 cat = m.get("category", "General")
                 content = m.get("content", "")
                 imp = m.get("importance", "Medium")

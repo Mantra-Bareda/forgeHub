@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-import httpx
 from providers.base import AIProvider
 
 class MistralProvider(AIProvider):
@@ -88,7 +87,7 @@ class MistralProvider(AIProvider):
             if not choices:
                 return ""
                 
-            text = choices[0].get("message", {}).get("content", "")
+            text = choices[0].get("message", {}).get("content") or ""
             self.status = "AVAILABLE"
             return text
         except Exception as e:

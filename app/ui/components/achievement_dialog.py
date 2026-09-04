@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QLineEdit, QTextEdit, QComboBox, 
                                  QPushButton, QMessageBox, QDateEdit)
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import QDate
 
 class AchievementDialog(QDialog):
     def __init__(self, parent=None):

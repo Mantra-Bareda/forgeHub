@@ -1,3 +1,5 @@
+import sqlite3
+
 class Repository:
     def __init__(self, db_manager):
         self.db = db_manager
@@ -165,7 +167,6 @@ class ProfileRepository(Repository):
             return [dict(row) for row in cursor.fetchall()]
 
     def add_skill(self, name, level="Intermediate"):
-        import sqlite3
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             try:
@@ -292,7 +293,7 @@ class ProviderRepository(Repository):
                 FROM models m
                 JOIN ai_providers p ON m.provider_id = p.id
                 JOIN api_keys_metadata k ON p.id = k.provider_id
-                WHERE k.enabled = 1 AND k.status LIKE '%Connected%'
+                WHERE k.enabled = 1 AND k.status NOT IN ('Invalid Key', 'Not Configured')
             """
             params = []
             if category:
@@ -308,13 +309,17 @@ class ChatRepository(Repository):
             cursor = conn.cursor()
             if project_id:
                 cursor.execute("""
-                    SELECT role, content, created_at FROM conversations 
-                    WHERE project_id = ? ORDER BY created_at ASC LIMIT ?
+                    SELECT * FROM (
+                        SELECT role, content, created_at FROM conversations 
+                        WHERE project_id = ? ORDER BY created_at DESC LIMIT ?
+                    ) ORDER BY created_at ASC
                 """, (project_id, limit))
             else:
                 cursor.execute("""
-                    SELECT role, content, created_at FROM conversations 
-                    WHERE project_id IS NULL ORDER BY created_at ASC LIMIT ?
+                    SELECT * FROM (
+                        SELECT role, content, created_at FROM conversations 
+                        WHERE project_id IS NULL ORDER BY created_at DESC LIMIT ?
+                    ) ORDER BY created_at ASC
                 """, (limit,))
             return [dict(row) for row in cursor.fetchall()]
 
@@ -353,4 +358,21 @@ class MemoryRepository(Repository):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
+            conn.commit()
+
+    def update_memory(self, memory_id, content, category=None, importance=None):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM memories WHERE id = ?", (memory_id,))
+            existing = cursor.fetchone()
+            if not existing: return
+            cursor.execute("""
+                UPDATE memories SET content = ?, category = ?, importance = ?
+                WHERE id = ?
+            """, (
+                content,
+                category if category else existing["category"],
+                importance if importance else existing["importance"],
+                memory_id
+            ))
             conn.commit()

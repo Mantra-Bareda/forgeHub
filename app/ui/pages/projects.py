@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QPushButton, QLineEdit, 
-                                 QScrollArea, QFrame, QStackedWidget, QMessageBox)
+                                 QScrollArea, QFrame, QStackedWidget)
 from PySide6.QtCore import Qt
 from database.repository import ProjectRepository
 from app.ui.components.project_dialog import ProjectDialog
@@ -19,12 +19,12 @@ class ProjectCard(QFrame):
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
         
-        desc = project_data.get("description", "")
+        desc = project_data.get("description") or ""
         if len(desc) > 50: desc = desc[:47] + "..."
         layout.addWidget(QLabel(desc))
         
-        layout.addWidget(QLabel(f"Stack: {project_data.get('technology_stack', 'N/A')}"))
-        layout.addWidget(QLabel(f"Status: {project_data.get('status', 'Planning')}"))
+        layout.addWidget(QLabel(f"Stack: {project_data.get('technology_stack') or 'N/A'}"))
+        layout.addWidget(QLabel(f"Status: {project_data.get('status') or 'Planning'}"))
         
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()

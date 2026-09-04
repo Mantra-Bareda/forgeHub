@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QPushButton, QTextEdit, 
-                                 QScrollArea, QFrame, QSizePolicy, QMessageBox)
-from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject
+                                 QScrollArea, QFrame, QMessageBox)
+from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QTimer
 from database.repository import ChatRepository
-from app.ai import ModelRouter, RoutingError
+from app.ai import ModelRouter
 
 class ChatWorkerSignals(QObject):
     finished = Signal(str)
@@ -47,9 +47,22 @@ class ChatMessageWidget(QFrame):
         layout.addWidget(msg)
         
         if role == "user":
-            self.setStyleSheet("QFrame { background-color: #2b2b2b; border-radius: 8px; margin: 5px; }")
+            self.setStyleSheet("QFrame { background-color: #2b2b2b; border-radius: 8px; margin: 5px; } QLabel { color: #E0E0E0; }")
         else:
-            self.setStyleSheet("QFrame { background-color: #1e1e1e; border-radius: 8px; margin: 5px; border: 1px solid #333; }")
+            self.setStyleSheet("QFrame { background-color: #1e1e1e; border-radius: 8px; margin: 5px; border: 1px solid #333; } QLabel { color: #E0E0E0; }")
+
+class BackgroundExtractor(QRunnable):
+    def __init__(self, db_mgr, hist):
+        super().__init__()
+        self.db = db_mgr
+        self.hist = hist
+    def run(self):
+        try:
+            from app.memory.extractor import MemoryExtractor
+            extractor = MemoryExtractor(self.db)
+            extractor.extract_memories(self.hist)
+        except Exception as e:
+            pass
 
 class AIChatPage(QWidget):
     def __init__(self, db_manager):
@@ -102,7 +115,7 @@ class AIChatPage(QWidget):
         bubble = ChatMessageWidget(role, content)
         self.history_layout.addWidget(bubble)
         # Scroll to bottom
-        self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
+        QTimer.singleShot(50, lambda: self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))
 
     def load_history(self):
         # Clear layout
@@ -149,17 +162,6 @@ class AIChatPage(QWidget):
         # If user just sent the 5th, 10th, 15th message etc.
         user_messages = [m for m in history if m["role"] == "user"]
         if len(user_messages) > 0 and len(user_messages) % 5 == 0:
-            from app.memory.extractor import MemoryExtractor
-            
-            class BackgroundExtractor(QRunnable):
-                def __init__(self, db_mgr, hist):
-                    super().__init__()
-                    self.db = db_mgr
-                    self.hist = hist
-                def run(self):
-                    extractor = MemoryExtractor(self.db)
-                    extractor.extract_memories(self.hist)
-                    
             self.thread_pool.start(BackgroundExtractor(self.db, history))
         
     def on_ai_response(self, response_text):
@@ -170,7 +172,7 @@ class AIChatPage(QWidget):
         self.repo.save_message("assistant", response_text)
         
         # Scroll down again after a tiny delay to ensure UI updated
-        self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
+        QTimer.singleShot(50, lambda: self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))
 
     def on_ai_error(self, error_msg):
         self.send_btn.setEnabled(True)

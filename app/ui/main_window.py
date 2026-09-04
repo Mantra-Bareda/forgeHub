@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage("AI Status: Ready")
 
     def setup_pages(self):
-        self.stacked_widget.addWidget(DashboardPage())
+        self.stacked_widget.addWidget(DashboardPage(self.db_manager))
         self.stacked_widget.addWidget(ProjectsPage(self.db_manager))
         self.stacked_widget.addWidget(ProfilePage(self.db_manager))
         self.stacked_widget.addWidget(ContentPage())

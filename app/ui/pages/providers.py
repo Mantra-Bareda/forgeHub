@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QPushButton, QLineEdit, 
                                  QScrollArea, QFrame, QGroupBox, QMessageBox)
-from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject
+from PySide6.QtCore import QRunnable, QThreadPool, Signal, QObject
 from database.repository import ProviderRepository
 from providers import GeminiProvider, GroqProvider, MistralProvider, CerebrasProvider
 
@@ -151,5 +151,4 @@ class AIProvidersPage(QWidget):
                 QMessageBox.information(self, "Success", f"Successfully authenticated with {provider_name}.\nDiscovered {len(models)} models.")
             else:
                 card.status_label.setStyleSheet("color: red; font-weight: bold;")
-                self.repo.save_api_key(provider_name, api_key, "Invalid Key")
                 QMessageBox.warning(self, "Validation Failed", f"Failed to authenticate with {provider_name}.\nError: {status_msg}")

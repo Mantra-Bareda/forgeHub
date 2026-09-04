@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
-                                 QLabel, QPushButton, QScrollArea, QFrame, 
+                                 QLabel, QPushButton, 
                                  QListWidget, QListWidgetItem, QMessageBox)
 from PySide6.QtCore import Qt, QThreadPool, QRunnable, Signal, QObject
 from database.repository import MemoryRepository, ChatRepository
@@ -75,7 +75,7 @@ class MemoryPage(QWidget):
             if m["importance"] == "High":
                 item.setForeground(Qt.GlobalColor.red)
             elif m["importance"] == "Medium":
-                item.setForeground(Qt.GlobalColor.yellow)
+                item.setForeground(Qt.GlobalColor.darkYellow)
                 
             self.memory_list.addItem(item)
             

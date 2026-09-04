@@ -19,9 +19,10 @@ def setup_logger():
     ch.setFormatter(formatter)
     
     # File handler
-    fh = logging.FileHandler(log_dir / "forgehub.log")
+    fh = logging.FileHandler(log_dir / "forgehub.log", encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     
-    logger.addHandler(ch)
-    logger.addHandler(fh)
+    if not logger.handlers:
+        logger.addHandler(ch)
+        logger.addHandler(fh)

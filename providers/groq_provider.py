@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-import httpx
 from providers.base import AIProvider
 
 class GroqProvider(AIProvider):
@@ -26,14 +25,17 @@ class GroqProvider(AIProvider):
             models = []
             for m in data.get("data", []):
                 name = m.get("id", "")
+                ctx = m.get("context_window", 32768)
                 cat = "General"
-                if "llama" in name.lower() or "mixtral" in name.lower():
-                    cat = "Professional Writing"
+                if "8b" in name.lower() or "small" in name.lower():
+                    cat = "Lightweight"
+                elif "70b" in name.lower() or "large" in name.lower():
+                    cat = "Reasoning"
                 
                 models.append({
                     "model_id": name,
                     "name": name,
-                    "context_size": 32768, # Default fallback if not available
+                    "context_size": ctx,
                     "category": cat,
                     "availability": "AVAILABLE"
                 })
@@ -51,7 +53,7 @@ class GroqProvider(AIProvider):
             return {
                 "model_id": m.get("id"),
                 "name": m.get("id"),
-                "context_size": 32768
+                "context_size": m.get("context_window", 32768)
             }
         except Exception as e:
             self.handle_error(e)
@@ -83,7 +85,7 @@ class GroqProvider(AIProvider):
             if not choices:
                 return ""
                 
-            text = choices[0].get("message", {}).get("content", "")
+            text = choices[0].get("message", {}).get("content") or ""
             self.status = "AVAILABLE"
             return text
         except Exception as e:

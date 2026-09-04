@@ -10,9 +10,21 @@ def load_config():
             "app_name": APP_NAME,
             "version": APP_VERSION
         }
-        with open(config_path, "w") as f:
+        with open(config_path, "w", encoding="utf-8") as f:
             json.dump(default_config, f, indent=4)
         return default_config
         
-    with open(config_path, "r") as f:
-        return json.load(f)
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {
+            "theme": "system",
+            "app_name": APP_NAME,
+            "version": APP_VERSION
+        }
+
+def save_config(config_data):
+    config_path = Path("config.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, indent=4)

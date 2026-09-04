@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS api_keys_metadata (
     enabled BOOLEAN DEFAULT 1,
     status TEXT,
     last_tested TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(provider_id) REFERENCES ai_providers(id) ON DELETE CASCADE
 );
 
@@ -114,6 +115,48 @@ CREATE TABLE IF NOT EXISTS models (
     category TEXT,
     availability TEXT,
     FOREIGN KEY(provider_id) REFERENCES ai_providers(id) ON DELETE CASCADE
+);
+
+-- Certificates
+CREATE TABLE IF NOT EXISTS certificates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    issuer TEXT,
+    issue_date DATE,
+    expiry_date DATE,
+    credential_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Hackathons
+CREATE TABLE IF NOT EXISTS hackathons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_name TEXT NOT NULL,
+    project_submitted TEXT,
+    standing TEXT,
+    date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AI Events Tracking
+CREATE TABLE IF NOT EXISTS ai_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT,
+    model TEXT,
+    task_type TEXT,
+    status TEXT,
+    latency_ms INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Usage Tracking
+CREATE TABLE IF NOT EXISTS usage_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT,
+    model TEXT,
+    prompt_tokens INTEGER DEFAULT 0,
+    completion_tokens INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
 
