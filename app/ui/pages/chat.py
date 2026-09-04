@@ -10,11 +10,12 @@ class ChatWorkerSignals(QObject):
     error = Signal(str)
 
 class ChatWorker(QRunnable):
-    def __init__(self, router, prompt, context=""):
+    def __init__(self, router, prompt, context="", system_prompt=""):
         super().__init__()
         self.router = router
         self.prompt = prompt
         self.context = context
+        self.system_prompt = system_prompt
         self.signals = ChatWorkerSignals()
         
     def run(self):
@@ -23,7 +24,7 @@ class ChatWorker(QRunnable):
             response = self.router.route_request(
                 prompt=self.prompt,
                 category="General",
-                system_prompt="You are Forge Hub, a professional AI manager designed to help the user with project management and professional tasks.",
+                system_prompt=self.system_prompt,
                 context=self.context
             )
             self.signals.finished.emit(response)
@@ -70,6 +71,10 @@ class AIChatPage(QWidget):
         self.db = db_manager
         self.repo = ChatRepository(self.db)
         self.router = ModelRouter(self.db)
+        
+        from app.ai.compiler import ContextCompiler
+        self.compiler = ContextCompiler(self.db)
+        
         self.thread_pool = QThreadPool.globalInstance()
         
         self.layout = QVBoxLayout(self)
@@ -150,9 +155,10 @@ class AIChatPage(QWidget):
         
         # Get context
         context = self.get_recent_context()
+        system_prompt = self.compiler.compile_system_prompt()
         
         # Start chat worker
-        worker = ChatWorker(self.router, text, context)
+        worker = ChatWorker(self.router, text, context, system_prompt)
         worker.signals.finished.connect(self.on_ai_response)
         worker.signals.error.connect(self.on_ai_error)
         self.thread_pool.start(worker)

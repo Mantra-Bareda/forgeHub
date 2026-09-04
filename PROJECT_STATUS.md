@@ -42,9 +42,12 @@
 - **AI Architecture:** Fixed Router status mismatch, rate-limit dead code, and chat history fetching logic.
 - **UI & UX:** Implemented dynamic theme switcher in `SettingsPage`, built functional `DashboardPage`, and corrected Chat light/dark text contrast.
 
+- [x] **Phase 11: Advanced Prompting & Context Compilation**
+  - Built `ContextCompiler` to dynamically build system prompts.
+  - Injected extracted memory points and user profile preferences into `ModelRouter` system prompts so the AI inherently "remembers" the user across chats.
+
 ### Next Steps (Immediate)
-- [ ] **Phase 11: Advanced Prompting & Context Compilation**
-  - Inject the extracted memory points seamlessly into the `ModelRouter` system prompts so the AI inherently "remembers" the user across separate chats.
-  - Improve prompt templates for general chat.
-- **Phase 17 - Phase 20:** Content Generation flows (GitHub READMEs, LinkedIn Content) and the Professional Posting Advisor logic.
+- [ ] **Phase 12: Content Generation Workflows**
+  - Build UI and backend for generating GitHub READMEs.
+  - Build UI and backend for generating LinkedIn Posts based on user achievements.
 - **Phase 21 - Phase 28:** System Polish, Testing, Packaging, and UI/UX Finalizations.
