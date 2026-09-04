@@ -19,7 +19,7 @@ Forge Hub is a native desktop application designed as a **personal professional 
 
 ## 📈 Current Progress
 
-**Phase 1-7 Completed:** The foundational shell, database architecture, UI integrations, and project/profile management systems are fully functional. Additionally, the backend Provider Adapter architecture (Gemini, Groq, Cerebras, Mistral) is seamlessly connected to the UI, allowing users to authenticate API keys and dynamically discover models securely on their local machine.
+**Phase 1-8 Completed:** The foundational shell, database architecture, UI integrations, and project/profile management systems are fully functional. The backend Provider Adapter architecture is seamlessly connected to the UI, allowing users to authenticate API keys and dynamically discover models securely on their local machine. Additionally, the intelligent `ModelRouter` layer handles failovers and selects optimal models per task dynamically without any user friction.
 
 ## 💻 Getting Started
 

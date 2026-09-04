@@ -51,14 +51,18 @@
   - Saved valid API keys and dynamically discovered models securely in the local database.
   - *Files updated/created*: `app/ui/pages/providers.py`, `database/repository.py`, `database/schema.py`, `main.py`.
 
-### Next Steps (Immediate)
-- [ ] **Phase 8: Dynamic Model Routing Layer**
-  - Implement the `ModelRouter` to query the local `models` table.
-  - Create the algorithm for categorizing models (e.g. General, Reasoning, Lightweight).
-  - Handle rate limit fallbacks and tracking.
+### Immediate Priority
+- [x] **Phase 8: Dynamic Model Routing Layer**
+  - Implemented the `ModelRouter` to securely query the local `models` table.
+  - Built an algorithm to dynamically fetch active models by category (General, Reasoning, Lightweight).
+  - Designed fallback loops that automatically cycle through remaining valid API models if a rate limit or timeout is encountered.
+  - *Files updated/created*: `app/ai/router.py`, `app/ai/__init__.py`, `database/repository.py`.
 
-### Upcoming Phases (Highlights)
-- **Phase 9 - Phase 12:** Orchestration and Advanced Prompting.
+### Next Steps (Immediate)
+- [ ] **Phase 9: AI Chat Interface Shell**
+  - Build the frontend UI for AI Chat.
+  - Display current active model and token usage visually.
+  - Allow user interaction without hooking it fully into memory compilation yet.
 - **Phase 13 - Phase 16:** Implementation of the Persistent Memory System, Context Compiler, and AI Chat UI integrations.
 - **Phase 17 - Phase 20:** Content Generation flows (GitHub READMEs, LinkedIn Content) and the Professional Posting Advisor logic.
 - **Phase 21 - Phase 28:** System Polish, Testing, Packaging, and UI/UX Finalizations.

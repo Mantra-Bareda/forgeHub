@@ -281,3 +281,23 @@ class ProviderRepository(Repository):
             else:
                 cursor.execute("SELECT * FROM models")
             return [dict(row) for row in cursor.fetchall()]
+
+    def get_available_models(self, category=None):
+        """Fetches all dynamically discovered models that have valid API keys attached."""
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT m.model_id, m.name, m.context_size, m.category, 
+                       p.name as provider_name, k.api_key 
+                FROM models m
+                JOIN ai_providers p ON m.provider_id = p.id
+                JOIN api_keys_metadata k ON p.id = k.provider_id
+                WHERE k.enabled = 1 AND k.status LIKE '%Connected%'
+            """
+            params = []
+            if category:
+                query += " AND m.category = ?"
+                params.append(category)
+            
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
