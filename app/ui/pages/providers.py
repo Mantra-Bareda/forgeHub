@@ -46,7 +46,11 @@ class ProviderCard(QGroupBox):
         
         models = self.models_callback(self.provider_data["name"])
         if models:
-            models_text = ", ".join([m["name"] for m in models])
+            display_models = models[:8]
+            models_text = ", ".join([m["name"] for m in display_models])
+            if len(models) > 8:
+                models_text += f", ... and {len(models) - 8} more"
+                
             models_lbl = QLabel(f"Discovered Models ({len(models)}): {models_text}")
             models_lbl.setWordWrap(True)
             models_lbl.setStyleSheet("color: #555; font-size: 10px;")
