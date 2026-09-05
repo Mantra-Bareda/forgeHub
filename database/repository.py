@@ -439,9 +439,9 @@ class MemoryRepository(Repository):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             if category:
-                cursor.execute("SELECT * FROM memories WHERE category = ? ORDER BY created_at DESC", (category,))
+                cursor.execute("SELECT * FROM memories WHERE category = ? ORDER BY created_at DESC, id DESC", (category,))
             else:
-                cursor.execute("SELECT * FROM memories ORDER BY created_at DESC")
+                cursor.execute("SELECT * FROM memories ORDER BY created_at DESC, id DESC")
             return [dict(row) for row in cursor.fetchall()]
 
     def search_memories(self, query):
@@ -478,22 +478,6 @@ class MemoryRepository(Repository):
             cursor.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
             conn.commit()
 
-    def update_memory(self, memory_id, content, category=None, importance=None):
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM memories WHERE id = ?", (memory_id,))
-            existing = cursor.fetchone()
-            if not existing: return
-            cursor.execute("""
-                UPDATE memories SET content = ?, category = ?, importance = ?
-                WHERE id = ?
-            """, (
-                content,
-                category if category else existing["category"],
-                importance if importance else existing["importance"],
-                memory_id
-            ))
-            conn.commit()
 
 class PostRepository(Repository):
     def get_posts(self):
