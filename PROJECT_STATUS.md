@@ -60,8 +60,16 @@
 - [x] Implemented Memory Importance scoring and UI editing via context menus.
 - [x] Upgraded `ContextCompiler` to strategically rank, trim, and prioritize High-Importance memories before injecting them into the LLM context, preventing bloat.
 
+### Phase 15: Final Testing & Edge Cases (Completed)
+- [x] Implemented full system test suites using `pytest` for AI logic, Database integrity, and CRUD operations.
+- [x] Tested and resolved deterministic sorting bugs (e.g. `ORDER BY created_at DESC, id DESC`).
+- [x] Completed final UI/UX review: All screens feature threading, empty states, and error handling.
+
+### Phase 16 - 20: AI Orchestration & Profile Intelligence (Completed)
+- [x] Phase 16 (Context-Aware AI Chat): `AIChatPage` dynamically routes via `ContextCompiler`.
+- [x] Phase 17-19 (GitHub, LinkedIn, Posting Advisor): Fully built into `ContentGenerator`.
+- [x] Phase 20 (Profile Intelligence): Integrated `IntelWorker` in `ProfilePage` to perform automated career coaching and weakness detection based on aggregated DB skills/projects/history.
+
 ### Next Steps (Immediate)
-- [ ] **Phase 15: Final Testing & Edge Cases**
-  - Implement full system test suites.
-  - Final UI/UX review before packaging.
-- **Phase 16 - Phase 28:** Packaging, Distribution, and V1.0 Polish.
+- [ ] **Phase 21 - Phase 28: Packaging & Final Polish**
+  - App icons, final theming, packaging (e.g. PyInstaller build), and final offline UX polish.

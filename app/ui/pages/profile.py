@@ -123,6 +123,23 @@ class ProfilePage(QWidget):
         
         self.layout.addStretch()
         
+        # Profile Intelligence
+        intelligence_layout = QVBoxLayout()
+        intelligence_layout.addWidget(QLabel("<b>Profile Intelligence (AI Analysis):</b>"))
+        
+        self.intelligence_btn = QPushButton("Generate AI Profile Analysis")
+        self.intelligence_btn.setStyleSheet("background-color: #9C27B0; color: white; font-weight: bold; padding: 10px;")
+        self.intelligence_btn.clicked.connect(self.run_intelligence)
+        intelligence_layout.addWidget(self.intelligence_btn)
+        
+        self.intelligence_output = QTextEdit()
+        self.intelligence_output.setPlaceholderText("AI will analyze your projects, skills, and history to find weaknesses, repetition, and recommend what to build or post next...")
+        self.intelligence_output.setMinimumHeight(150)
+        self.intelligence_output.setReadOnly(True)
+        intelligence_layout.addWidget(self.intelligence_output)
+        
+        self.layout.addLayout(intelligence_layout)
+        
         scroll.setWidget(content_widget)
         main_layout.addWidget(scroll)
         
@@ -131,7 +148,7 @@ class ProfilePage(QWidget):
         bottom_bar.addStretch()
         save_btn = QPushButton("Save Profile")
         save_btn.setMinimumWidth(150)
-        save_btn.setStyleSheet("font-weight: bold; padding: 8px;")
+        save_btn.setStyleSheet("font-weight: bold; padding: 8px; background-color: #4CAF50; color: white;")
         save_btn.clicked.connect(self.save_profile)
         bottom_bar.addWidget(save_btn)
         
@@ -139,7 +156,85 @@ class ProfilePage(QWidget):
         bottom_container.setLayout(bottom_bar)
         main_layout.addWidget(bottom_container)
         
+        from app.ai.router import ModelRouter
+        self.router = ModelRouter(self.db)
+        
         self.load_data()
+
+    def run_intelligence(self):
+        self.intelligence_btn.setEnabled(False)
+        self.intelligence_btn.setText("Analyzing Profile...")
+        self.intelligence_output.setPlainText("Compiling your skills, projects, and history for AI analysis...")
+        
+        from PySide6.QtCore import QRunnable, QThreadPool, QObject, Signal
+        
+        class IntelSignals(QObject):
+            finished = Signal(str)
+            error = Signal(str)
+            
+        class IntelWorker(QRunnable):
+            def __init__(self, db, router):
+                super().__init__()
+                self.db = db
+                self.router = router
+                self.signals = IntelSignals()
+                
+            def run(self):
+                try:
+                    from database.repository import ProfileRepository, ProjectRepository, PostRepository
+                    prof_repo = ProfileRepository(self.db)
+                    proj_repo = ProjectRepository(self.db)
+                    post_repo = PostRepository(self.db)
+                    
+                    profile = prof_repo.get_profile()
+                    skills = [s['name'] for s in prof_repo.get_skills()]
+                    projects = proj_repo.get_projects()
+                    achievements = prof_repo.get_achievements()
+                    posts = post_repo.get_posts()
+                    
+                    prompt = f"""
+                    Analyze my professional profile:
+                    Goals: {profile.get('professional_goals', 'None')}
+                    Skills: {skills}
+                    Projects: {[p['name'] + ' (' + p['status'] + '): ' + p['technology_stack'] for p in projects]}
+                    Achievements: {[a['title'] for a in achievements]}
+                    Recent Posts: {[p['content'][:50] for p in posts]}
+                    
+                    Answer these specific questions concisely:
+                    1. What are my strongest projects?
+                    2. What skills do I demonstrate vs what am I missing based on my goals?
+                    3. What content am I posting too often?
+                    4. What areas are weak?
+                    5. What project should I document next?
+                    6. What content would diversify my profile?
+                    """
+                    
+                    system_prompt = "You are an expert career coach and profile analyzer. Give a highly actionable, structured assessment."
+                    
+                    res, provider, model = self.router.route_request(
+                        prompt=prompt,
+                        category="Reasoning",
+                        system_prompt=system_prompt,
+                        max_tokens=1000
+                    )
+                    self.signals.finished.emit(res)
+                except Exception as e:
+                    self.signals.error.emit(str(e))
+                    
+        worker = IntelWorker(self.db, self.router)
+        worker.signals.finished.connect(self.on_intel_done)
+        worker.signals.error.connect(self.on_intel_error)
+        QThreadPool.globalInstance().start(worker)
+        
+    def on_intel_done(self, result):
+        self.intelligence_btn.setEnabled(True)
+        self.intelligence_btn.setText("Generate AI Profile Analysis")
+        self.intelligence_output.setPlainText(result)
+        
+    def on_intel_error(self, err):
+        self.intelligence_btn.setEnabled(True)
+        self.intelligence_btn.setText("Generate AI Profile Analysis")
+        self.intelligence_output.setPlainText(f"Error generating analysis: {err}")
 
     def load_data(self):
         # Load profile text fields
