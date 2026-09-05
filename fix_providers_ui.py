@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
+with open("app/ui/pages/providers.py", "w") as f:
+    f.write("""from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QPushButton, QLineEdit, 
                                  QScrollArea, QFrame, QGroupBox, QMessageBox, QCheckBox, QFormLayout)
 from PySide6.QtCore import QRunnable, QThreadPool, Signal, QObject
@@ -204,10 +205,11 @@ class AIProvidersPage(QWidget):
                 QMessageBox.information(self, "Success", f"Successfully authenticated with {provider_name}.")
             else:
                 card.slots[slot]["status_label"].setStyleSheet("color: red; font-weight: bold;")
-                QMessageBox.warning(self, "Validation Failed", f"Failed to authenticate with {provider_name}.\nError: {status_msg}")
+                QMessageBox.warning(self, "Validation Failed", f"Failed to authenticate with {provider_name}.\\nError: {status_msg}")
             
             self.load_providers()
             
     def remove_key(self, provider_name, slot, key_id):
         self.repo.delete_api_key(key_id)
         self.load_providers()
+""")

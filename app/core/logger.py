@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 def setup_logger():
-    log_dir = Path("logs")
+    log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
     log_dir.mkdir(exist_ok=True)
     
     logger = logging.getLogger("ForgeHub")

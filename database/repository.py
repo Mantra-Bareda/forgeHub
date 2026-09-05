@@ -1,5 +1,10 @@
 import sqlite3
 
+try:
+    import keyring
+except ImportError:
+    keyring = None
+
 class Repository:
     def __init__(self, db_manager):
         self.db = db_manager
@@ -117,6 +122,16 @@ class ProjectRepository(Repository):
                 self._log_activity(cursor, project_id, "Document Added", f"Created document: '{title}'.")
             conn.commit()
 
+    def delete_document(self, doc_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT project_id, title FROM project_documents WHERE id = ?", (doc_id,))
+            doc = cursor.fetchone()
+            if doc:
+                cursor.execute("DELETE FROM project_documents WHERE id = ?", (doc_id,))
+                self._log_activity(cursor, doc["project_id"], "Document Deleted", f"Deleted document: '{doc['title']}'.")
+                conn.commit()
+
     # --- Activity Log ---
     def _log_activity(self, cursor, project_id, activity_type, description):
         cursor.execute(
@@ -221,36 +236,105 @@ class ProviderRepository(Repository):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT p.id, p.name, p.status, k.api_key, k.last_tested 
+                SELECT p.id, p.name, p.status, 
+                       k.id as key_id, k.api_key, k.last_tested, k.key_slot, k.enabled, k.display_name, k.status as key_status
                 FROM ai_providers p
                 LEFT JOIN api_keys_metadata k ON p.id = k.provider_id
             """)
-            return [dict(row) for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            
+            providers_dict = {}
+            for row in rows:
+                p_name = row["name"]
+                if p_name not in providers_dict:
+                    providers_dict[p_name] = {
+                        "id": row["id"],
+                        "name": p_name,
+                        "status": row["status"],
+                        "keys": {}
+                    }
+                
+                if row["key_id"]:
+                    key_val = row["api_key"]
+                    if keyring:
+                        try:
+                            kr_val = keyring.get_password("forgehub", f"api_key_{row['key_id']}")
+                            if kr_val: key_val = kr_val
+                        except Exception:
+                            pass
+                    
+                    providers_dict[p_name]["keys"][row["key_slot"]] = {
+                        "id": row["key_id"],
+                        "api_key": key_val,
+                        "last_tested": row["last_tested"],
+                        "key_slot": row["key_slot"],
+                        "enabled": row["enabled"],
+                        "display_name": row["display_name"],
+                        "status": row["key_status"]
+                    }
+            
+            return list(providers_dict.values())
 
-    def save_api_key(self, provider_name, api_key, status="Valid"):
+    def save_api_key(self, provider_name, api_key, status="Valid", key_slot=1, display_name=None, enabled=1):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM ai_providers WHERE name = ?", (provider_name,))
             provider = cursor.fetchone()
             if not provider: return
 
-            cursor.execute("SELECT id FROM api_keys_metadata WHERE provider_id = ?", (provider["id"],))
+            cursor.execute("SELECT id FROM api_keys_metadata WHERE provider_id = ? AND key_slot = ?", (provider["id"], key_slot))
             existing_key = cursor.fetchone()
             
+            disp_name = display_name if display_name else f"{provider_name} Key {key_slot}"
+            
             if existing_key:
-                cursor.execute("""
+                key_id = existing_key["id"]
+                db_api_key = "••••••••" if keyring and api_key != "••••••••" else api_key
+                if db_api_key == "••••••••":
+                    pass
+                else:
+                    db_api_key = db_api_key
+
+                update_key_str = ""
+                params = [status, disp_name, enabled, key_id]
+                if api_key != "••••••••":
+                    update_key_str = "api_key = ?,"
+                    params.insert(0, db_api_key)
+
+                cursor.execute(f"""
                     UPDATE api_keys_metadata 
-                    SET api_key = ?, status = ?, last_tested = CURRENT_TIMESTAMP 
+                    SET {update_key_str} status = ?, last_tested = CURRENT_TIMESTAMP, display_name = ?, enabled = ?
                     WHERE id = ?
-                """, (api_key, status, existing_key["id"]))
+                """, tuple(params))
             else:
+                db_api_key = "••••••••" if keyring else api_key
                 cursor.execute("""
-                    INSERT INTO api_keys_metadata (provider_id, display_name, api_key, status, last_tested)
-                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (provider["id"], f"{provider_name} Default Key", api_key, status))
+                    INSERT INTO api_keys_metadata (provider_id, display_name, api_key, status, last_tested, key_slot, enabled)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
+                """, (provider["id"], disp_name, db_api_key, status, key_slot, enabled))
+                key_id = cursor.lastrowid
                 
             cursor.execute("UPDATE ai_providers SET status = ? WHERE id = ?", (status, provider["id"]))
             conn.commit()
+            
+            if keyring and api_key != "••••••••":
+                try:
+                    keyring.set_password("forgehub", f"api_key_{key_id}", api_key)
+                except Exception:
+                    pass
+            
+            return key_id
+
+    def delete_api_key(self, key_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM api_keys_metadata WHERE id = ?", (key_id,))
+            conn.commit()
+            if keyring:
+                try:
+                    keyring.delete_password("forgehub", f"api_key_{key_id}")
+                except Exception:
+                    pass
 
     def save_models(self, provider_name, models_list):
         with self.db.get_connection() as conn:
@@ -289,7 +373,7 @@ class ProviderRepository(Repository):
             cursor = conn.cursor()
             query = """
                 SELECT m.model_id, m.name, m.context_size, m.category, 
-                       p.name as provider_name, k.api_key 
+                       p.name as provider_name, k.api_key, k.id as key_id 
                 FROM models m
                 JOIN ai_providers p ON m.provider_id = p.id
                 JOIN api_keys_metadata k ON p.id = k.provider_id
@@ -301,7 +385,16 @@ class ProviderRepository(Repository):
                 params.append(category)
             
             cursor.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
+            rows = [dict(row) for row in cursor.fetchall()]
+            
+            for row in rows:
+                if keyring:
+                    try:
+                        kr_val = keyring.get_password("forgehub", f"api_key_{row['key_id']}")
+                        if kr_val: row["api_key"] = kr_val
+                    except Exception:
+                        pass
+            return rows
 
 class ChatRepository(Repository):
     def get_chat_history(self, project_id=None, limit=50):
@@ -330,6 +423,15 @@ class ChatRepository(Repository):
                 INSERT INTO conversations (project_id, role, content)
                 VALUES (?, ?, ?)
             """, (project_id, role, content))
+            conn.commit()
+
+    def clear_history(self, project_id=None):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            if project_id:
+                cursor.execute("DELETE FROM conversations WHERE project_id = ?", (project_id,))
+            else:
+                cursor.execute("DELETE FROM conversations WHERE project_id IS NULL")
             conn.commit()
 
 class MemoryRepository(Repository):
@@ -376,3 +478,88 @@ class MemoryRepository(Repository):
                 memory_id
             ))
             conn.commit()
+
+class PostRepository(Repository):
+    def get_posts(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM posts ORDER BY posted_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_post(self, platform, content):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO posts (platform, content) VALUES (?, ?)",
+                (platform, content)
+            )
+            conn.commit()
+
+    def delete_post(self, post_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM posts WHERE id = ?", (post_id,))
+            conn.commit()
+
+class CertificateRepository(Repository):
+    def get_certificates(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM certificates ORDER BY issue_date DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_certificate(self, title, issuer, issue_date, expiry_date=None, credential_url=None):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO certificates (title, issuer, issue_date, expiry_date, credential_url) VALUES (?, ?, ?, ?, ?)",
+                (title, issuer, issue_date, expiry_date, credential_url)
+            )
+            conn.commit()
+
+    def delete_certificate(self, cert_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM certificates WHERE id = ?", (cert_id,))
+            conn.commit()
+            
+    def update_certificate(self, cert_id, title, issuer, issue_date, expiry_date, credential_url):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE certificates SET title = ?, issuer = ?, issue_date = ?, expiry_date = ?, credential_url = ? WHERE id = ?",
+                (title, issuer, issue_date, expiry_date, credential_url, cert_id)
+            )
+            conn.commit()
+
+class HackathonRepository(Repository):
+    def get_hackathons(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM hackathons ORDER BY date DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_hackathon(self, event_name, project_submitted, standing, date):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO hackathons (event_name, project_submitted, standing, date) VALUES (?, ?, ?, ?)",
+                (event_name, project_submitted, standing, date)
+            )
+            conn.commit()
+
+    def delete_hackathon(self, hackathon_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM hackathons WHERE id = ?", (hackathon_id,))
+            conn.commit()
+            
+    def update_hackathon(self, hackathon_id, event_name, project_submitted, standing, date):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE hackathons SET event_name = ?, project_submitted = ?, standing = ?, date = ? WHERE id = ?",
+                (event_name, project_submitted, standing, date, hackathon_id)
+            )
+            conn.commit()
+

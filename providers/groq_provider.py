@@ -27,9 +27,14 @@ class GroqProvider(AIProvider):
                 name = m.get("id", "")
                 ctx = m.get("context_window", 32768)
                 cat = "General"
-                if "8b" in name.lower() or "small" in name.lower():
-                    cat = "Lightweight"
+                
+                if ctx >= 128000:
+                    cat = "Large Context"
                 elif "70b" in name.lower() or "large" in name.lower():
+                    cat = "Professional Writing"
+                elif "8b" in name.lower() or "small" in name.lower():
+                    cat = "Lightweight"
+                else:
                     cat = "Reasoning"
                 
                 models.append({

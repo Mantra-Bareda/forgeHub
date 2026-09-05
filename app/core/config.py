@@ -2,8 +2,11 @@ import json
 from pathlib import Path
 from app.core.metadata import APP_NAME, APP_VERSION
 
+def get_config_path():
+    return Path(__file__).resolve().parent.parent.parent / "config.json"
+
 def load_config():
-    config_path = Path("config.json")
+    config_path = get_config_path()
     if not config_path.exists():
         default_config = {
             "theme": "system",
@@ -25,6 +28,6 @@ def load_config():
         }
 
 def save_config(config_data):
-    config_path = Path("config.json")
+    config_path = get_config_path()
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config_data, f, indent=4)

@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QSpacerItem, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QSpacerItem, QSizePolicy, QButtonGroup
 from PySide6.QtCore import Signal, Qt
 
 class Sidebar(QWidget):
@@ -11,6 +11,8 @@ class Sidebar(QWidget):
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(5)
         
+        self.button_group = QButtonGroup(self)
+        self.button_group.setExclusive(True)
         self.buttons = []
         
         # Primary Navigation
@@ -27,13 +29,18 @@ class Sidebar(QWidget):
         # Secondary Navigation
         self.add_button("AI Providers", 6)
         self.add_button("Settings", 7)
+        
+        if self.buttons:
+            self.buttons[0].setChecked(True)
 
     def add_button(self, text, index):
         btn = QPushButton(text)
+        btn.setCheckable(True)
         # Using a fixed height for a better professional look
         btn.setFixedHeight(35)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
         btn.clicked.connect(lambda _, idx=index: self.page_selected.emit(idx))
         self.layout.addWidget(btn)
+        self.button_group.addButton(btn, index)
         self.buttons.append(btn)

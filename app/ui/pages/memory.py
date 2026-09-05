@@ -58,26 +58,50 @@ class MemoryPage(QWidget):
         subtitle.setStyleSheet("color: #888; font-style: italic;")
         self.layout.addWidget(subtitle)
         
-        # List of memories
-        self.memory_list = QListWidget()
-        self.memory_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.memory_list.customContextMenuRequested.connect(self.show_context_menu)
-        self.layout.addWidget(self.memory_list)
+        # Tabs for categories
+        from PySide6.QtWidgets import QTabWidget
+        self.tabs = QTabWidget()
+        self.layout.addWidget(self.tabs)
+        
+        self.categories = ["Profile", "Projects", "Achievements", "Conversations", "Other"]
+        self.lists = {}
+        for cat in self.categories:
+            list_w = QListWidget()
+            list_w.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            list_w.customContextMenuRequested.connect(self.show_context_menu)
+            self.lists[cat] = list_w
+            self.tabs.addTab(list_w, cat)
+            
+        self.empty_state_label = QLabel("No memories extracted yet.")
+        self.empty_state_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_state_label.setStyleSheet("color: #888; font-style: italic;")
+        self.layout.addWidget(self.empty_state_label)
         
         self.load_memories()
         
     def load_memories(self):
-        self.memory_list.clear()
+        for list_w in self.lists.values():
+            list_w.clear()
+            
         memories = self.repo.get_memories()
+        if not memories:
+            self.empty_state_label.show()
+            self.tabs.hide()
+            return
+            
+        self.empty_state_label.hide()
+        self.tabs.show()
+        
         for m in memories:
-            item = QListWidgetItem(f"[{m['importance']}] {m['category']}: {m['content']}")
+            cat = m['category'] if m['category'] in self.lists else "Other"
+            item = QListWidgetItem(f"[{m['importance']}] {m['content']}")
             item.setData(Qt.ItemDataRole.UserRole, m["id"])
             if m["importance"] == "High":
                 item.setForeground(Qt.GlobalColor.red)
             elif m["importance"] == "Medium":
                 item.setForeground(Qt.GlobalColor.darkYellow)
                 
-            self.memory_list.addItem(item)
+            self.lists[cat].addItem(item)
             
     def trigger_extraction(self):
         self.extract_btn.setEnabled(False)
@@ -100,12 +124,15 @@ class MemoryPage(QWidget):
         
     def show_context_menu(self, position):
         from PySide6.QtWidgets import QMenu
-        item = self.memory_list.itemAt(position)
+        list_w = self.sender()
+        if not list_w: return
+        
+        item = list_w.itemAt(position)
         if not item: return
         
         menu = QMenu()
         delete_action = menu.addAction("Delete Memory")
-        action = menu.exec(self.memory_list.mapToGlobal(position))
+        action = menu.exec(list_w.mapToGlobal(position))
         
         if action == delete_action:
             self.repo.delete_memory(item.data(Qt.ItemDataRole.UserRole))

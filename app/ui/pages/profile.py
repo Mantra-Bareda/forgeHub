@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                                  QScrollArea, QFrame, QListWidget, QListWidgetItem,
                                  QLineEdit, QComboBox, QMessageBox, QMenu)
 from PySide6.QtCore import Qt
-from database.repository import ProfileRepository
+from database.repository import ProfileRepository, CertificateRepository, HackathonRepository, PostRepository
 from app.ui.components.achievement_dialog import AchievementDialog
 
 class ProfilePage(QWidget):
@@ -77,10 +77,28 @@ class ProfilePage(QWidget):
         self.layout.addLayout(achievements_header)
         
         self.achievements_list = QListWidget()
-        self.achievements_list.setMaximumHeight(150)
+        self.achievements_list.setMaximumHeight(100)
         self.achievements_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.achievements_list.customContextMenuRequested.connect(self.achievement_context_menu)
         self.layout.addWidget(self.achievements_list)
+        
+        # 4.1 Certificates
+        self.layout.addWidget(QLabel("<b>Certificates:</b>"))
+        self.cert_list = QListWidget()
+        self.cert_list.setMaximumHeight(100)
+        self.layout.addWidget(self.cert_list)
+        
+        # 4.2 Hackathons
+        self.layout.addWidget(QLabel("<b>Hackathons:</b>"))
+        self.hackathon_list = QListWidget()
+        self.hackathon_list.setMaximumHeight(100)
+        self.layout.addWidget(self.hackathon_list)
+        
+        # 4.3 Posting History
+        self.layout.addWidget(QLabel("<b>Posting History:</b>"))
+        self.post_list = QListWidget()
+        self.post_list.setMaximumHeight(100)
+        self.layout.addWidget(self.post_list)
         
         # 5. Professional Preferences
         self.layout.addWidget(QLabel("<b>LinkedIn Preferences (Style, formats, tags):</b>"))
@@ -141,6 +159,28 @@ class ProfilePage(QWidget):
         
         self.load_skills()
         self.load_achievements()
+        self.load_certificates()
+        self.load_hackathons()
+        self.load_posts()
+
+    def load_certificates(self):
+        self.cert_list.clear()
+        repo = CertificateRepository(self.db)
+        for cert in repo.get_certificates():
+            self.cert_list.addItem(f"{cert['title']} - {cert['issuer']} ({cert.get('issue_date','')})")
+
+    def load_hackathons(self):
+        self.hackathon_list.clear()
+        repo = HackathonRepository(self.db)
+        for hack in repo.get_hackathons():
+            self.hackathon_list.addItem(f"{hack['event_name']} ({hack.get('date','')}) - {hack.get('standing','')}")
+
+    def load_posts(self):
+        self.post_list.clear()
+        repo = PostRepository(self.db)
+        for post in repo.get_posts():
+            content = str(post.get('content', ''))
+            self.post_list.addItem(f"[{post.get('posted_at','')}] {post.get('platform','')}: {content[:50]}...")
 
     def load_skills(self):
         self.skills_list.clear()

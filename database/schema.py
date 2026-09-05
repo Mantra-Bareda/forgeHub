@@ -114,6 +114,12 @@ CREATE TABLE IF NOT EXISTS models (
     context_size INTEGER,
     category TEXT,
     availability TEXT,
+    vision BOOLEAN DEFAULT 0,
+    reasoning BOOLEAN DEFAULT 0,
+    tool_support BOOLEAN DEFAULT 0,
+    input_capability TEXT,
+    output_capability TEXT,
+    last_checked TIMESTAMP,
     FOREIGN KEY(provider_id) REFERENCES ai_providers(id) ON DELETE CASCADE
 );
 
@@ -162,5 +168,14 @@ CREATE TABLE IF NOT EXISTS usage_info (
 
 def initialize_database(db_manager):
     with db_manager.get_connection() as conn:
-        conn.executescript(SCHEMA)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA user_version")
+        version = cursor.fetchone()[0]
+        
+        if version == 0:
+            conn.executescript(SCHEMA)
+            cursor.execute("PRAGMA user_version = 1")
+        elif version == 1:
+            pass # Add future migrations here
+            
         conn.commit()

@@ -35,7 +35,7 @@ class MemoryExtractor:
         """
         
         try:
-            response = self.router.route_request(
+            result, provider, model = self.router.route_request(
                 prompt=context_str,
                 category="Lightweight", 
                 system_prompt=system_prompt,
@@ -43,7 +43,7 @@ class MemoryExtractor:
             )
             
             # Extract JSON array from response using regex (handles preamble text and code fences)
-            match = re.search(r'\[.*\]', response, re.DOTALL)
+            match = re.search(r'\[.*\]', result, re.DOTALL)
             if not match:
                 return
                 

@@ -21,13 +21,13 @@ class ChatWorker(QRunnable):
     def run(self):
         try:
             # We request a General model, ModelRouter will automatically select the best available
-            response = self.router.route_request(
+            result, provider, model = self.router.route_request(
                 prompt=self.prompt,
                 category="General",
                 system_prompt=self.system_prompt,
                 context=self.context
             )
-            self.signals.finished.emit(response)
+            self.signals.finished.emit(f"{result}\n\n<small style='color: #888;'><i>Powered by {provider} ({model})</i></small>")
         except Exception as e:
             self.signals.error.emit(str(e))
 
@@ -114,9 +114,19 @@ class AIChatPage(QWidget):
         
         self.layout.addLayout(input_layout)
         
+        from PySide6.QtGui import QShortcut, QKeySequence
+        self.shortcut_enter = QShortcut(QKeySequence("Ctrl+Return"), self.input_box)
+        self.shortcut_enter.activated.connect(self.send_message)
+        self.shortcut_enter2 = QShortcut(QKeySequence("Ctrl+Enter"), self.input_box)
+        self.shortcut_enter2.activated.connect(self.send_message)
+        
         self.load_history()
 
     def add_message_bubble(self, role, content):
+        if hasattr(self, 'empty_state') and self.empty_state:
+            self.empty_state.deleteLater()
+            self.empty_state = None
+            
         bubble = ChatMessageWidget(role, content)
         self.history_layout.addWidget(bubble)
         # Scroll to bottom
@@ -130,6 +140,13 @@ class AIChatPage(QWidget):
                 child.widget().deleteLater()
                 
         history = self.repo.get_chat_history()
+        if not history:
+            self.empty_state = QLabel("Start a conversation! The AI context router will automatically select the best model for your queries.")
+            self.empty_state.setStyleSheet("color: #888; font-style: italic; margin-top: 50px;")
+            self.empty_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.history_layout.addWidget(self.empty_state)
+            return
+            
         for msg in history:
             self.add_message_bubble(msg["role"], msg["content"])
             
@@ -184,4 +201,12 @@ class AIChatPage(QWidget):
         self.send_btn.setEnabled(True)
         self.send_btn.setText("Send")
         
-        QMessageBox.critical(self, "AI Error", f"Failed to get a response:\n{error_msg}")
+        friendly_error = error_msg
+        if "No available AI models" in error_msg:
+            friendly_error = "It looks like you haven't configured any AI providers yet. Please go to the 'AI Providers' section and add an API key."
+        elif "rate-limit" in error_msg.lower() or "429" in error_msg:
+            friendly_error = "The AI provider is currently rate-limiting requests. Please wait a moment and try again."
+        elif "context too small" in error_msg.lower():
+            friendly_error = "The conversation has gotten too long for the selected AI model to handle. Try starting a new topic or using a model with a larger context window."
+            
+        QMessageBox.critical(self, "AI Routing Error", friendly_error)

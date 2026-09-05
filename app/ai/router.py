@@ -10,6 +10,7 @@ class RoutingError(Exception):
 
 class ModelRouter:
     def __init__(self, db_manager):
+        self.db_manager = db_manager
         self.repo = ProviderRepository(db_manager)
         
         # Tracks temporarily rate-limited providers: {"provider_name": cooldown_until_timestamp}
@@ -33,11 +34,27 @@ class ModelRouter:
         """Rough token estimation: ~4 chars per token for English text."""
         return len(text) // 4
 
-    def route_request(self, prompt: str, category: str = "General", system_prompt: str = "", context: str = "", max_tokens: int = 1024) -> str:
+    def detect_task_category(self, prompt: str) -> str:
+        """Classify prompts automatically based on simple keyword matching."""
+        prompt_lower = prompt.lower()
+        if any(kw in prompt_lower for kw in ["code", "debug", "python", "function", "refactor"]):
+            return "Coding"
+        if any(kw in prompt_lower for kw in ["write", "essay", "blog", "draft", "summarize"]):
+            return "Professional Writing"
+        if any(kw in prompt_lower for kw in ["think", "analyze", "explain", "why", "how"]):
+            return "Reasoning"
+        return "General"
+
+    def route_request(self, prompt: str, category: str = "General", system_prompt: str = "", context: str = "", max_tokens: int = 1024) -> tuple:
         """
         Dynamically routes a prompt to the best available model.
         Falls back to other providers if a rate limit or API error occurs.
+        Returns a tuple: (response_text, provider_name, model_id)
         """
+        # Auto-detect category if it's default
+        if category == "General":
+            category = self.detect_task_category(prompt)
+
         # First, try to get models specifically in the category
         models = self.repo.get_available_models(category=category)
         
@@ -70,6 +87,7 @@ class ModelRouter:
             
             provider = get_provider(provider_name, m["api_key"])
                 
+            start_time = time.time()
             try:
                 logger.info(f"Routing request to {provider_name} ({m['model_id']})")
                 result = provider.generate(
@@ -79,11 +97,37 @@ class ModelRouter:
                     context=context,
                     max_tokens=max_tokens
                 )
-                return result
+                
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "INSERT INTO ai_events (provider, model, task_type, status, latency_ms) VALUES (?, ?, ?, ?, ?)",
+                        (provider_name, m["model_id"], category, "Success", latency_ms)
+                    )
+                    # We roughly estimate the completion tokens as len(result) // 4
+                    comp_tokens = self._estimate_tokens(result)
+                    cursor.execute(
+                        "INSERT INTO usage_info (provider, model, prompt_tokens, completion_tokens) VALUES (?, ?, ?, ?)",
+                        (provider_name, m["model_id"], self._estimate_tokens(total_input), comp_tokens)
+                    )
+                    conn.commit()
+                
+                return (result, provider_name, m["model_id"])
                 
             except Exception as e:
                 error_status = provider.get_status()
                 logger.error(f"Failed routing to {provider_name} ({m['model_id']}): {error_status} — {str(e)}")
+                
+                latency_ms = int((time.time() - start_time) * 1000)
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "INSERT INTO ai_events (provider, model, task_type, status, latency_ms) VALUES (?, ?, ?, ?, ?)",
+                        (provider_name, m["model_id"], category, "Failed", latency_ms)
+                    )
+                    conn.commit()
                 
                 # If rate-limited, set cooldown so we don't retry this provider
                 if error_status == "LIMITED":

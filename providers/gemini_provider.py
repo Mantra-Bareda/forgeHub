@@ -24,15 +24,20 @@ class GeminiProvider(AIProvider):
                 if "generateContent" in m.get("supportedGenerationMethods", []):
                     name = m.get("name", "").split("/")[-1]
                     cat = "General"
-                    if "flash" in name.lower():
+                    ctx = m.get("inputTokenLimit", 32768)
+                    if ctx >= 128000:
+                        cat = "Large Context"
+                    elif "ultra" in name.lower() or "pro" in name.lower():
+                        cat = "Professional Writing"
+                    elif "flash" in name.lower():
                         cat = "Lightweight"
-                    elif "pro" in name.lower():
+                    else:
                         cat = "Reasoning"
                     
                     models.append({
                         "model_id": name,
                         "name": m.get("displayName", name),
-                        "context_size": m.get("inputTokenLimit", 32768),
+                        "context_size": ctx,
                         "category": cat,
                         "availability": "AVAILABLE"
                     })

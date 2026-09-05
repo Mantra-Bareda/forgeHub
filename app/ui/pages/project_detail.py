@@ -91,16 +91,43 @@ class ProjectDetailWidget(QWidget):
         self.activity_layout.addWidget(self.activity_list)
         self.tabs.addTab(self.activity_tab, "Activity")
         
-        # AI Actions Tab (Placeholder)
+        # AI Actions Tab
         self.ai_tab = QWidget()
         self.ai_layout = QVBoxLayout(self.ai_tab)
-        self.ai_layout.addWidget(QLabel("AI functionality will be implemented in future phases."))
-        self.ai_layout.addWidget(QPushButton("Analyze Project"))
-        self.ai_layout.addWidget(QPushButton("Improve README"))
-        self.ai_layout.addWidget(QPushButton("Create LinkedIn Post"))
+        
+        self.analyze_btn = QPushButton("Analyze Project")
+        self.improve_readme_btn = QPushButton("Improve README")
+        self.linkedin_post_btn = QPushButton("Create LinkedIn Post")
+        self.ask_ai_btn = QPushButton("Ask AI")
+        
+        self.analyze_btn.clicked.connect(lambda: self.handle_ai_action("Analyze Project"))
+        self.improve_readme_btn.clicked.connect(lambda: self.handle_ai_action("Improve README"))
+        self.linkedin_post_btn.clicked.connect(lambda: self.handle_ai_action("Create LinkedIn Post"))
+        self.ask_ai_btn.clicked.connect(lambda: self.handle_ai_action("Ask AI"))
+        
+        self.ai_layout.addWidget(self.analyze_btn)
+        self.ai_layout.addWidget(self.improve_readme_btn)
+        self.ai_layout.addWidget(self.linkedin_post_btn)
+        self.ai_layout.addWidget(self.ask_ai_btn)
         self.ai_layout.addStretch()
         self.tabs.addTab(self.ai_tab, "AI")
         
+    def handle_ai_action(self, action_name):
+        has_ai = False
+        try:
+            from database.repository import ProviderRepository
+            provider_repo = ProviderRepository(self.db)
+            if provider_repo.get_active_provider():
+                has_ai = True
+        except Exception:
+            pass
+            
+        if not has_ai:
+            QMessageBox.warning(self, "AI Error", "AI provider not configured. Please configure an AI provider in Settings first.")
+            return
+            
+        QMessageBox.information(self, "AI Action", f"Action '{action_name}' triggered for project '{self.project_data.get('name', 'Unknown')}'. (AI integration pending)")
+
     def load_project(self, project_id):
         self.project_id = project_id
         self.project_data = self.repo.get_project(project_id)

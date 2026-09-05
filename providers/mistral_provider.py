@@ -25,16 +25,22 @@ class MistralProvider(AIProvider):
             models = []
             for m in data.get("data", []):
                 name = m.get("id", "")
+                ctx = m.get("max_context_length", 32768)
                 cat = "General"
-                if "large" in name.lower():
-                    cat = "Reasoning"
+                
+                if ctx >= 128000:
+                    cat = "Large Context"
+                elif "large" in name.lower():
+                    cat = "Professional Writing"
                 elif "small" in name.lower() or "ministral" in name.lower():
                     cat = "Lightweight"
+                else:
+                    cat = "Reasoning"
                 
                 models.append({
                     "model_id": name,
                     "name": name,
-                    "context_size": m.get("max_context_length", 32768),
+                    "context_size": ctx,
                     "category": cat,
                     "availability": "AVAILABLE"
                 })

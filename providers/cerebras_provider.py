@@ -25,16 +25,22 @@ class CerebrasProvider(AIProvider):
             models = []
             for m in data.get("data", []):
                 name = m.get("id", "")
+                ctx = m.get("context_window", 8192)
                 cat = "General"
-                if "8b" in name.lower():
+                
+                if ctx >= 128000:
+                    cat = "Large Context"
+                elif "70b" in name.lower() or "large" in name.lower():
+                    cat = "Professional Writing"
+                elif "8b" in name.lower() or "small" in name.lower():
                     cat = "Lightweight"
-                elif "70b" in name.lower():
+                else:
                     cat = "Reasoning"
 
                 models.append({
                     "model_id": name,
                     "name": name,
-                    "context_size": m.get("context_window", 8192),
+                    "context_size": ctx,
                     "category": cat,
                     "availability": "AVAILABLE"
                 })

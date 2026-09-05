@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QHBoxLayout, QListWidget, QListWidgetItem, QGridLayout
 from PySide6.QtCore import Qt
 from database.repository import ProjectRepository, ProfileRepository
 
@@ -34,28 +34,53 @@ class DashboardPage(QWidget):
         # Stats row
         stats_layout = QHBoxLayout()
         
-        project_count = 0
-        skill_count = 0
-        achievement_count = 0
+        projects = []
+        achievements = []
         
         if self.db:
             try:
                 proj_repo = ProjectRepository(self.db)
                 projects = proj_repo.get_projects()
-                project_count = len(projects)
                 
                 prof_repo = ProfileRepository(self.db)
                 skills = prof_repo.get_skills()
-                skill_count = len(skills)
                 achievements = prof_repo.get_achievements()
-                achievement_count = len(achievements)
+                
+                stats_layout.addWidget(StatCard("Total Projects", len(projects)))
+                stats_layout.addWidget(StatCard("Skills Tracked", len(skills)))
+                stats_layout.addWidget(StatCard("Achievements", len(achievements)))
             except Exception:
-                pass
+                stats_layout.addWidget(StatCard("Total Projects", 0))
+                stats_layout.addWidget(StatCard("Skills Tracked", 0))
+                stats_layout.addWidget(StatCard("Achievements", 0))
         
-        stats_layout.addWidget(StatCard("Total Projects", project_count))
-        stats_layout.addWidget(StatCard("Skills Tracked", skill_count))
-        stats_layout.addWidget(StatCard("Achievements", achievement_count))
         layout.addLayout(stats_layout)
+        
+        lists_layout = QHBoxLayout()
+        
+        # Recent Projects
+        recent_proj_layout = QVBoxLayout()
+        recent_proj_layout.addWidget(QLabel("<b>Recent Projects</b>"))
+        proj_list = QListWidget()
+        for p in projects[:5]:
+            proj_list.addItem(QListWidgetItem(p.get("name", "Unnamed Project")))
+        if not projects:
+            proj_list.addItem(QListWidgetItem("No projects found."))
+        recent_proj_layout.addWidget(proj_list)
+        
+        # Recent Achievements
+        recent_ach_layout = QVBoxLayout()
+        recent_ach_layout.addWidget(QLabel("<b>Recent Achievements</b>"))
+        ach_list = QListWidget()
+        for a in achievements[:5]:
+            ach_list.addItem(QListWidgetItem(f"{a.get('type', 'Achievement')}: {a.get('title', 'Unknown')}"))
+        if not achievements:
+            ach_list.addItem(QListWidgetItem("No achievements found."))
+        recent_ach_layout.addWidget(ach_list)
+        
+        lists_layout.addLayout(recent_proj_layout)
+        lists_layout.addLayout(recent_ach_layout)
+        layout.addLayout(lists_layout)
         
         # Quick info
         info = QLabel("Navigate using the sidebar to manage your projects, professional profile, AI providers, and more.")

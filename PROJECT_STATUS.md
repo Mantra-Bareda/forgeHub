@@ -36,11 +36,13 @@
   - Built `MemoryExtractor` using Lightweight AI models to extract JSON facts from chats.
   - Designed `MemoryPage` UI to view, extract, and manage memory points.
 
-## 🛠️ Recent Fixes & Hardening (Audit Results)
-- Completed a comprehensive Phase 1-10 codebase audit resolving 7 critical bugs.
-- **Data Integrity:** Fixed Profile `content_preferences` data loss and `NoneType` crashes on SQL NULL fields.
-- **AI Architecture:** Fixed Router status mismatch, rate-limit dead code, and chat history fetching logic.
-- **UI & UX:** Implemented dynamic theme switcher in `SettingsPage`, built functional `DashboardPage`, and corrected Chat light/dark text contrast.
+## 🛠️ Phase 1-11 Comprehensive Audit & Hardening
+- Conducted a massive 24-point strict audit against `docs/UI-UX.md` and `docs/Web-App-Flow.md`.
+- **Security:** Integrated OS `keyring` to store API keys securely, removing plaintext keys from SQLite. Implemented UI key masking.
+- **Provider UI (Phase 7):** Upgraded `AIProvidersPage` to support 2 keys per provider, renaming, enable/disable toggles, and safe removal.
+- **Intelligence:** Added NLP task detection to `ModelRouter` to automatically classify prompts without user intervention.
+- **UI Polish:** Rebuilt `DashboardPage` to fetch live data. Added `QTabWidget` filters to Settings and Memory pages. Wired AI Transparency labels to Chat bubbles.
+- **Architecture:** Added `sys.excepthook`, graceful thread shutdown, and full DB schema migrations.
 
 - [x] **Phase 11: Advanced Prompting & Context Compilation**
   - Built `ContextCompiler` to dynamically build system prompts.

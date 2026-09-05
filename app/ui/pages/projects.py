@@ -25,6 +25,7 @@ class ProjectCard(QFrame):
         
         layout.addWidget(QLabel(f"Stack: {project_data.get('technology_stack') or 'N/A'}"))
         layout.addWidget(QLabel(f"Status: {project_data.get('status') or 'Planning'}"))
+        layout.addWidget(QLabel(f"Updated: {project_data.get('updated_at', 'Unknown')}"))
         
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
