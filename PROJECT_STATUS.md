@@ -74,6 +74,12 @@
 - [x] Refactored `ModelRouter.route_request()` to emit detailed `metadata_dict` containing: Provider, Model, Task category, Selection Reason, and Fallback statuses.
 - [x] Rebuilt `AIChatPage` footer to inject full Phase 21 transparency payload, allowing users to deeply trace AI routing decisions.
 
+### Phase 22: Settings & Memory Manager (Completed)
+- [x] Connected all toggles in `SettingsPage` to dynamically write to `config.json`.
+- [x] Wired "Edit Base System Prompt" to dynamically affect the `ContextCompiler`.
+- [x] Wired "Enable Automatic Memory Extraction" to gracefully pause background AI extraction in `chat.py`.
+- [x] Attached "Clear All Memory" button to `MemoryRepository.clear_all_memories()`.
+
 ### Next Steps (Immediate)
-- [ ] **Phase 22 - Phase 28: Packaging & Final Polish**
-  - Final theming, PyInstaller build, desktop integration.
+- [ ] **Phase 23 - Phase 28: Packaging & Final Polish**
+  - PyInstaller build, desktop integration, and offline UX testing.

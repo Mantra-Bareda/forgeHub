@@ -219,5 +219,7 @@ class AIChatPage(QWidget):
             friendly_error = "The AI provider is currently rate-limiting requests. Please wait a moment and try again."
         elif "context too small" in error_msg.lower():
             friendly_error = "The conversation has gotten too long for the selected AI model to handle. Try starting a new topic or using a model with a larger context window."
+        elif "network" in error_msg.lower() or "connect" in error_msg.lower() or "timeout" in error_msg.lower():
+            friendly_error = "Network connection failed. Forge Hub is running in offline mode. AI features require an active internet connection or a local model."
             
         QMessageBox.critical(self, "AI Routing Error", friendly_error)
