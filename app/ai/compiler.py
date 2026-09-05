@@ -21,7 +21,9 @@ class ContextCompiler:
         
         # 1. Base identity
         if not base_prompt:
-            base_prompt = "You are Forge Hub, a professional AI manager designed to help the user with project management and professional tasks."
+            from app.core.config import load_config
+            cfg = load_config()
+            base_prompt = cfg.get("base_system_prompt", "You are Forge Hub, a professional AI manager designed to help the user with project management and professional tasks.")
         prompt_parts.append(base_prompt)
         
         # 2. Profile integration

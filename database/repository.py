@@ -477,6 +477,12 @@ class MemoryRepository(Repository):
             cursor = conn.cursor()
             cursor.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
             conn.commit()
+            
+    def clear_all_memories(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM memories")
+            conn.commit()
 
 
 class PostRepository(Repository):

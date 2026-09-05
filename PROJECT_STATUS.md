@@ -70,6 +70,10 @@
 - [x] Phase 17-19 (GitHub, LinkedIn, Posting Advisor): Fully built into `ContentGenerator`.
 - [x] Phase 20 (Profile Intelligence): Integrated `IntelWorker` in `ProfilePage` to perform automated career coaching and weakness detection based on aggregated DB skills/projects/history.
 
+### Phase 21: AI Transparency (Completed)
+- [x] Refactored `ModelRouter.route_request()` to emit detailed `metadata_dict` containing: Provider, Model, Task category, Selection Reason, and Fallback statuses.
+- [x] Rebuilt `AIChatPage` footer to inject full Phase 21 transparency payload, allowing users to deeply trace AI routing decisions.
+
 ### Next Steps (Immediate)
-- [ ] **Phase 21 - Phase 28: Packaging & Final Polish**
-  - App icons, final theming, packaging (e.g. PyInstaller build), and final offline UX polish.
+- [ ] **Phase 22 - Phase 28: Packaging & Final Polish**
+  - Final theming, PyInstaller build, desktop integration.

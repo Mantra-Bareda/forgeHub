@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         self.providers_page = AIProvidersPage(self.db_manager)
         self.stacked_widget.addWidget(self.providers_page)
         
-        self.stacked_widget.addWidget(SettingsPage())
+        self.stacked_widget.addWidget(SettingsPage(self.db_manager))
 
         # Keyboard shortcuts
         from PySide6.QtGui import QShortcut, QKeySequence
