@@ -53,16 +53,22 @@ class ContextCompiler:
         try:
             memories = self.memory_repo.get_memories()
             if memories:
-                # Filter out low-importance memories to save tokens if we have too many, 
-                # or just inject all for now.
-                memory_context = "### Long-Term Memory (Extracted Facts) ###\n"
-                memory_context += "Use the following facts about the user to personalize your responses.\n\n"
+                # Prioritize high importance, then recent
+                high_imp = [m for m in memories if m['importance'] == 'High']
+                med_imp = [m for m in memories if m['importance'] == 'Medium']
+                low_imp = [m for m in memories if m['importance'] == 'Low']
                 
-                for m in memories:
-                    # e.g., "- [Preference] User prefers concise answers"
-                    memory_context += f"- [{m['category']}] {m['content']}\n"
+                # Take top 15 high, top 10 medium, top 5 low to prevent context bloat
+                selected_memories = high_imp[:15] + med_imp[:10] + low_imp[:5]
+                
+                if selected_memories:
+                    memory_context = "### Long-Term Memory (Extracted Facts) ###\n"
+                    memory_context += "Use the following facts about the user to personalize your responses.\n\n"
                     
-                prompt_parts.append(memory_context)
+                    for m in selected_memories:
+                        memory_context += f"- [{m['category']}] {m['content']}\n"
+                        
+                    prompt_parts.append(memory_context)
         except Exception as e:
             logger.error(f"Failed to load memory context: {str(e)}")
             

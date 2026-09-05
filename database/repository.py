@@ -444,10 +444,16 @@ class MemoryRepository(Repository):
                 cursor.execute("SELECT * FROM memories ORDER BY created_at DESC")
             return [dict(row) for row in cursor.fetchall()]
 
+    def search_memories(self, query):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            search_pattern = f"%{query}%"
+            cursor.execute("SELECT * FROM memories WHERE content LIKE ? ORDER BY created_at DESC", (search_pattern,))
+            return [dict(row) for row in cursor.fetchall()]
+
     def add_memory(self, category, content, importance="Medium"):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
-            # Basic deduplication logic
             cursor.execute("SELECT id FROM memories WHERE content = ?", (content,))
             if not cursor.fetchone():
                 cursor.execute("""
@@ -455,6 +461,16 @@ class MemoryRepository(Repository):
                     VALUES (?, ?, ?)
                 """, (category, content, importance))
                 conn.commit()
+
+    def update_memory(self, memory_id, category, content, importance):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE memories
+                SET category = ?, content = ?, importance = ?
+                WHERE id = ?
+            """, (category, content, importance, memory_id))
+            conn.commit()
 
     def delete_memory(self, memory_id):
         with self.db.get_connection() as conn:

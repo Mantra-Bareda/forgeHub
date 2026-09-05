@@ -58,6 +58,15 @@ class MemoryPage(QWidget):
         subtitle.setStyleSheet("color: #888; font-style: italic;")
         self.layout.addWidget(subtitle)
         
+        # Search bar
+        from PySide6.QtWidgets import QLineEdit
+        search_layout = QHBoxLayout()
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search memories...")
+        self.search_input.textChanged.connect(self.on_search_changed)
+        search_layout.addWidget(self.search_input)
+        self.layout.addLayout(search_layout)
+        
         # Tabs for categories
         from PySide6.QtWidgets import QTabWidget
         self.tabs = QTabWidget()
@@ -79,11 +88,17 @@ class MemoryPage(QWidget):
         
         self.load_memories()
         
-    def load_memories(self):
+    def on_search_changed(self, text):
+        self.load_memories(query=text)
+
+    def load_memories(self, query=""):
         for list_w in self.lists.values():
             list_w.clear()
             
-        memories = self.repo.get_memories()
+        if query:
+            memories = self.repo.search_memories(query)
+        else:
+            memories = self.repo.get_memories()
         if not memories:
             self.empty_state_label.show()
             self.tabs.hide()
@@ -123,7 +138,7 @@ class MemoryPage(QWidget):
         QMessageBox.warning(self, "Extraction Failed", f"Could not extract memories: {err}")
         
     def show_context_menu(self, position):
-        from PySide6.QtWidgets import QMenu
+        from PySide6.QtWidgets import QMenu, QInputDialog
         list_w = self.sender()
         if not list_w: return
         
@@ -131,9 +146,30 @@ class MemoryPage(QWidget):
         if not item: return
         
         menu = QMenu()
+        edit_action = menu.addAction("Edit Memory")
         delete_action = menu.addAction("Delete Memory")
         action = menu.exec(list_w.mapToGlobal(position))
         
+        mem_id = item.data(Qt.ItemDataRole.UserRole)
+        
         if action == delete_action:
-            self.repo.delete_memory(item.data(Qt.ItemDataRole.UserRole))
+            self.repo.delete_memory(mem_id)
             self.load_memories()
+        elif action == edit_action:
+            # We need to parse out the category/importance or just let them edit the content.
+            # E.g. text is "[Medium] user likes apples"
+            current_text = item.text()
+            bracket_end = current_text.find("]")
+            if bracket_end != -1:
+                content = current_text[bracket_end+2:]
+            else:
+                content = current_text
+                
+            new_text, ok = QInputDialog.getText(self, "Edit Memory", "New Content:", text=content)
+            if ok and new_text:
+                # Find the existing record to get its category and importance
+                for mem in self.repo.get_memories():
+                    if mem["id"] == mem_id:
+                        self.repo.update_memory(mem_id, mem["category"], new_text, mem["importance"])
+                        break
+                self.load_memories()
