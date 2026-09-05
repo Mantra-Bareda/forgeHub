@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, 
                                  QComboBox, QPushButton, QTextEdit, QMessageBox, 
-                                 QScrollArea, QFrame, QSplitter)
+                                 QFrame, QSplitter)
 from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject
 from app.ai.generator import ContentGenerator
 from app.ai.compiler import ContextCompiler

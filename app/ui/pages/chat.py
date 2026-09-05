@@ -62,7 +62,7 @@ class BackgroundExtractor(QRunnable):
             from app.memory.extractor import MemoryExtractor
             extractor = MemoryExtractor(self.db)
             extractor.extract_memories(self.hist)
-        except Exception as e:
+        except Exception:
             pass
 
 class AIChatPage(QWidget):

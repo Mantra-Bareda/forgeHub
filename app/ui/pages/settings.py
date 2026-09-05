@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QComboBox, 
-                                 QGroupBox, QFormLayout, QPushButton, QMessageBox, QTabWidget, QCheckBox, QSlider, QHBoxLayout)
+                                 QGroupBox, QFormLayout, QPushButton, QMessageBox, QTabWidget, QCheckBox, QSlider)
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 from app.core.theme import apply_theme
