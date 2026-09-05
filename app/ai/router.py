@@ -48,48 +48,45 @@ class ModelRouter:
     def route_request(self, prompt: str, category: str = "General", system_prompt: str = "", context: str = "", max_tokens: int = 1024) -> tuple:
         """
         Dynamically routes a prompt to the best available model.
-        Falls back to other providers if a rate limit or API error occurs.
-        Returns a tuple: (response_text, provider_name, model_id)
+        Returns a tuple: (response_text, metadata_dict)
+        metadata_dict contains Phase 21 Transparency data: provider, model, task, reason, fallback
         """
-        # Auto-detect category if it's default
+        original_category = category
         if category == "General":
             category = self.detect_task_category(prompt)
 
-        # First, try to get models specifically in the category
+        selection_reason = "Best available model for category"
         models = self.repo.get_available_models(category=category)
         
-        # Fallback to any model if category is empty
         if not models:
             logger.warning(f"No models found for category '{category}'. Falling back to any available.")
+            selection_reason = "Fallback to generic model (no category match)"
             models = self.repo.get_available_models()
             
         if not models:
             raise RoutingError("No available AI models or valid API keys found. Please configure them in AI Providers.")
         
-        # Estimate input size for context compatibility check
         total_input = f"{system_prompt}\n{context}\n{prompt}"
         estimated_tokens = self._estimate_tokens(total_input) + max_tokens
             
         last_error = None
+        attempt_count = 0
+        
         for m in models:
             provider_name = m["provider_name"]
             
-            # Skip rate-limited providers
             if self._is_rate_limited(provider_name):
-                logger.info(f"Skipping {provider_name} — currently rate-limited")
                 continue
             
-            # Context size check — skip models that are too small
             model_context = m.get("context_size", 0)
             if model_context > 0 and estimated_tokens > model_context:
-                logger.info(f"Skipping {provider_name}/{m['model_id']} — context too small ({model_context} < {estimated_tokens})")
                 continue
-            
-            provider = get_provider(provider_name, m["api_key"])
                 
+            attempt_count += 1
+            provider = get_provider(provider_name, m["api_key"])
             start_time = time.time()
+            
             try:
-                logger.info(f"Routing request to {provider_name} ({m['model_id']})")
                 result = provider.generate(
                     model_id=m["model_id"],
                     prompt=prompt,
@@ -106,7 +103,6 @@ class ModelRouter:
                         "INSERT INTO ai_events (provider, model, task_type, status, latency_ms) VALUES (?, ?, ?, ?, ?)",
                         (provider_name, m["model_id"], category, "Success", latency_ms)
                     )
-                    # We roughly estimate the completion tokens as len(result) // 4
                     comp_tokens = self._estimate_tokens(result)
                     cursor.execute(
                         "INSERT INTO usage_info (provider, model, prompt_tokens, completion_tokens) VALUES (?, ?, ?, ?)",
@@ -114,13 +110,20 @@ class ModelRouter:
                     )
                     conn.commit()
                 
-                return (result, provider_name, m["model_id"])
+                metadata = {
+                    "provider": provider_name,
+                    "model": m["model_id"],
+                    "task": category,
+                    "reason": selection_reason,
+                    "fallback_status": "None" if attempt_count == 1 else f"Fell back after {attempt_count - 1} failure(s)"
+                }
+                
+                return (result, metadata)
                 
             except Exception as e:
                 error_status = provider.get_status()
-                logger.error(f"Failed routing to {provider_name} ({m['model_id']}): {error_status} — {str(e)}")
-                
                 latency_ms = int((time.time() - start_time) * 1000)
+                
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(
@@ -129,7 +132,6 @@ class ModelRouter:
                     )
                     conn.commit()
                 
-                # If rate-limited, set cooldown so we don't retry this provider
                 if error_status == "LIMITED":
                     self._set_rate_limit(provider_name)
                     

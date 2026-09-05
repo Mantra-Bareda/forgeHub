@@ -211,7 +211,7 @@ class ProfilePage(QWidget):
                     
                     system_prompt = "You are an expert career coach and profile analyzer. Give a highly actionable, structured assessment."
                     
-                    res, provider, model = self.router.route_request(
+                    res, metadata = self.router.route_request(
                         prompt=prompt,
                         category="Reasoning",
                         system_prompt=system_prompt,

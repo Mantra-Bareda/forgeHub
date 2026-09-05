@@ -43,12 +43,13 @@ class ContentGenerator:
             f"Additional instructions: {custom_instructions}"
         )
         
-        return self.router.route_request(
+        res, meta = self.router.route_request(
             prompt=prompt,
             category="Professional Writing",
             system_prompt=system_prompt,
             max_tokens=2048
         )
+        return res
         
     def evaluate_posting_advisor(self, content_source: str, content_data: str) -> PostingAdvisorResult:
         system_prompt = (
@@ -70,7 +71,7 @@ class ContentGenerator:
             "Analyze and provide your recommendation."
         )
         
-        response = self.router.route_request(
+        res, meta = self.router.route_request(
             prompt=prompt,
             category="Reasoning",
             system_prompt=system_prompt,
@@ -78,9 +79,9 @@ class ContentGenerator:
         )
         
         rec = "RECOMMENDED"
-        reason = response
+        reason = res
         
-        for line in response.split('\n'):
+        for line in res.split('\n'):
             if line.startswith("RECOMMENDATION:"):
                 raw_rec = line.replace("RECOMMENDATION:", "").strip()
                 if raw_rec in ["RECOMMENDED", "RECOMMENDED WITH CHANGES", "NOT RECOMMENDED"]:
@@ -88,14 +89,7 @@ class ContentGenerator:
             elif line.startswith("REASON:"):
                 reason = line.replace("REASON:", "").strip()
                 
-        # Fallback if parsing failed but it gave a reason
-        if reason == response:
-            if "NOT RECOMMENDED" in response:
-                rec = "NOT RECOMMENDED"
-            elif "WITH CHANGES" in response:
-                rec = "RECOMMENDED WITH CHANGES"
-                
-        return PostingAdvisorResult(rec, reason)
+        return PostingAdvisorResult(recommendation=rec, reason=reason)
 
     def generate_linkedin_post(self, source_type: str, item_id: int, custom_instructions: str = "") -> str:
         data_str = ""
@@ -116,26 +110,22 @@ class ContentGenerator:
         if not data_str:
             return "Item not found."
             
-        profile = self.prof_repo.get_profile()
-        linkedin_prefs = profile.get("linkedin_preferences", "")
-        avoid = profile.get("things_to_avoid", "")
-        
-        system_prompt = (
-            "You are an expert professional brand manager and technical copywriter.\n"
-            "Your task is to write a highly engaging, professional LinkedIn post for the user based on their achievement.\n"
-            f"User's LinkedIn Preferences: {linkedin_prefs}\n"
-            f"Things to Avoid: {avoid}\n\n"
-            "Keep it authentic, not overly corporate. Use appropriate formatting and relevant hashtags."
+        system_prompt = self.compiler.compile_system_prompt(
+            "You are an expert LinkedIn ghostwriter for tech professionals.\n"
+            "Write an engaging, professional, and authentic LinkedIn post.\n"
+            "Do NOT use heavy jargon unless necessary. Do NOT sound overly generic or overly excited.\n"
+            "Use a clear hook, provide value or insights learned, and close with a gentle call to action or question."
         )
         
         prompt = (
-            f"Achievement Details:\n{data_str}\n\n"
-            f"Additional context/instructions: {custom_instructions}"
+            f"Source Material:\n{data_str}\n\n"
+            f"Additional Instructions: {custom_instructions}\n"
         )
         
-        return self.router.route_request(
+        res, meta = self.router.route_request(
             prompt=prompt,
             category="Professional Writing",
             system_prompt=system_prompt,
             max_tokens=1024
         )
+        return res

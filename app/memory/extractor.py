@@ -48,7 +48,7 @@ class MemoryExtractor:
         """
         
         try:
-            result, provider, model = self.router.route_request(
+            result, metadata = self.router.route_request(
                 prompt=context_str,
                 category="Lightweight", 
                 system_prompt=system_prompt,

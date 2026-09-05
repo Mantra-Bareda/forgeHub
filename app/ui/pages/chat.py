@@ -20,14 +20,22 @@ class ChatWorker(QRunnable):
         
     def run(self):
         try:
-            # We request a General model, ModelRouter will automatically select the best available
-            result, provider, model = self.router.route_request(
+            result, metadata = self.router.route_request(
                 prompt=self.prompt,
                 category="General",
                 system_prompt=self.system_prompt,
                 context=self.context
             )
-            self.signals.finished.emit(f"{result}\n\n<small style='color: #888;'><i>Powered by {provider} ({model})</i></small>")
+            
+            transparency_footer = (
+                f"<br><br><small style='color: #888;'>"
+                f"<i>Powered by {metadata['provider']} ({metadata['model']})</i><br>"
+                f"<b>Task:</b> {metadata['task']} | <b>Reason:</b> {metadata['reason']}<br>"
+                f"<b>Fallback:</b> {metadata['fallback_status']}"
+                f"</small>"
+            )
+            
+            self.signals.finished.emit(f"{result}{transparency_footer}")
         except Exception as e:
             self.signals.error.emit(str(e))
 
