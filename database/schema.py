@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS memories (
 CREATE TABLE IF NOT EXISTS conversations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER,
+    chat_context TEXT DEFAULT 'general',
     role TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

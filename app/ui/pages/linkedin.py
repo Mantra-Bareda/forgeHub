@@ -48,6 +48,17 @@ class LinkedInPage(QWidget):
         header.setStyleSheet("font-size: 24px; font-weight: bold;")
         main_layout.addWidget(header)
         
+        from PySide6.QtWidgets import QSplitter
+        from app.ui.pages.chat import AIChatPage
+        
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        main_layout.addWidget(splitter, stretch=1)
+        
+        # Left side: Form
+        form_container = QWidget()
+        form_layout = QVBoxLayout(form_container)
+        form_layout.setContentsMargins(0, 0, 10, 0)
+        
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         content_widget = QWidget()
@@ -108,12 +119,21 @@ class LinkedInPage(QWidget):
         
         self.layout.addStretch()
         scroll.setWidget(content_widget)
-        main_layout.addWidget(scroll)
+        form_layout.addWidget(scroll)
         
         save_btn = QPushButton("Save LinkedIn Profile")
         save_btn.setStyleSheet("font-weight: bold; padding: 10px; background-color: #4CAF50; color: white;")
         save_btn.clicked.connect(self.save_preferences)
-        main_layout.addWidget(save_btn)
+        form_layout.addWidget(save_btn)
+        
+        splitter.addWidget(form_container)
+        
+        # Right side: AI Chat
+        self.chat_page = AIChatPage(db_manager, chat_context="linkedin")
+        splitter.addWidget(self.chat_page)
+        
+        # Give chat more space by default
+        splitter.setSizes([400, 600])
         
         self.load_data()
 

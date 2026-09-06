@@ -613,41 +613,41 @@ class ProviderRepository(Repository):
             return rows
 
 class ChatRepository(Repository):
-    def get_chat_history(self, project_id=None, limit=50):
+    def get_chat_history(self, project_id=None, limit=50, chat_context='general'):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             if project_id:
                 cursor.execute("""
                     SELECT * FROM (
                         SELECT role, content, created_at FROM conversations 
-                        WHERE project_id = ? ORDER BY created_at DESC LIMIT ?
+                        WHERE project_id = ? AND chat_context = ? ORDER BY created_at DESC LIMIT ?
                     ) ORDER BY created_at ASC
-                """, (project_id, limit))
+                """, (project_id, chat_context, limit))
             else:
                 cursor.execute("""
                     SELECT * FROM (
                         SELECT role, content, created_at FROM conversations 
-                        WHERE project_id IS NULL ORDER BY created_at DESC LIMIT ?
+                        WHERE project_id IS NULL AND chat_context = ? ORDER BY created_at DESC LIMIT ?
                     ) ORDER BY created_at ASC
-                """, (limit,))
+                """, (chat_context, limit))
             return [dict(row) for row in cursor.fetchall()]
 
-    def save_message(self, role, content, project_id=None):
+    def save_message(self, role, content, project_id=None, chat_context='general'):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO conversations (project_id, role, content)
-                VALUES (?, ?, ?)
-            """, (project_id, role, content))
+                INSERT INTO conversations (project_id, chat_context, role, content)
+                VALUES (?, ?, ?, ?)
+            """, (project_id, chat_context, role, content))
             conn.commit()
 
-    def clear_history(self, project_id=None):
+    def clear_history(self, project_id=None, chat_context='general'):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             if project_id:
-                cursor.execute("DELETE FROM conversations WHERE project_id = ?", (project_id,))
+                cursor.execute("DELETE FROM conversations WHERE project_id = ? AND chat_context = ?", (project_id, chat_context))
             else:
-                cursor.execute("DELETE FROM conversations WHERE project_id IS NULL")
+                cursor.execute("DELETE FROM conversations WHERE project_id IS NULL AND chat_context = ?", (chat_context,))
             conn.commit()
 
 class MemoryRepository(Repository):

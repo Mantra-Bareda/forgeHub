@@ -74,10 +74,11 @@ class BackgroundExtractor(QRunnable):
             pass
 
 class AIChatPage(QWidget):
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, chat_context="general"):
         super().__init__()
         self.db = db_manager
         self.repo = ChatRepository(self.db)
+        self.chat_context = chat_context
         self.router = ModelRouter(self.db)
         
         from app.ai.compiler import ContextCompiler
@@ -140,6 +141,10 @@ class AIChatPage(QWidget):
         # Scroll to bottom
         QTimer.singleShot(50, lambda: self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))
 
+    def set_chat_context(self, new_context):
+        self.chat_context = new_context
+        self.load_history()
+
     def load_history(self):
         # Clear layout
         while self.history_layout.count():
@@ -147,7 +152,7 @@ class AIChatPage(QWidget):
             if child.widget():
                 child.widget().deleteLater()
                 
-        history = self.repo.get_chat_history()
+        history = self.repo.get_chat_history(chat_context=self.chat_context)
         if not history:
             self.empty_state = QLabel("Start a conversation! The AI context router will automatically select the best model for your queries.")
             self.empty_state.setStyleSheet("color: #888; font-style: italic; margin-top: 50px;")
@@ -160,7 +165,7 @@ class AIChatPage(QWidget):
             
     def get_recent_context(self):
         """Fetches the last few messages to provide context to the AI."""
-        history = self.repo.get_chat_history(limit=5)
+        history = self.repo.get_chat_history(limit=5, chat_context=self.chat_context)
         context_str = ""
         for msg in history:
             context_str += f"{msg['role'].upper()}: {msg['content']}\n"
@@ -176,7 +181,7 @@ class AIChatPage(QWidget):
         
         # Add to UI and DB
         self.add_message_bubble("user", text)
-        self.repo.save_message("user", text)
+        self.repo.save_message("user", text, chat_context=self.chat_context)
         
         # Get context
         context = self.get_recent_context()
@@ -192,7 +197,7 @@ class AIChatPage(QWidget):
         from app.core.config import load_config
         config = load_config()
         if config.get("auto_memory_extraction", True):
-            history = self.repo.get_chat_history(limit=20)
+            history = self.repo.get_chat_history(limit=20, chat_context=self.chat_context)
             # If user just sent the 5th, 10th, 15th message etc.
             user_messages = [m for m in history if m["role"] == "user"]
             if len(user_messages) > 0 and len(user_messages) % 5 == 0:
@@ -203,7 +208,7 @@ class AIChatPage(QWidget):
         self.send_btn.setText("Send")
         
         self.add_message_bubble("assistant", response_text)
-        self.repo.save_message("assistant", response_text)
+        self.repo.save_message("assistant", response_text, chat_context=self.chat_context)
         
         # Scroll down again after a tiny delay to ensure UI updated
         QTimer.singleShot(50, lambda: self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))

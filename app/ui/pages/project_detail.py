@@ -91,29 +91,11 @@ class ProjectDetailWidget(QWidget):
         self.activity_layout.addWidget(self.activity_list)
         self.tabs.addTab(self.activity_tab, "Activity")
         
-        # AI Actions Tab
-        self.ai_tab = QWidget()
-        self.ai_layout = QVBoxLayout(self.ai_tab)
+        # AI Chat Tab
+        from app.ui.pages.chat import AIChatPage
+        self.chat_page = AIChatPage(self.db)
+        self.tabs.addTab(self.chat_page, "AI Chat")
         
-        self.analyze_btn = QPushButton("Analyze Project")
-        self.improve_readme_btn = QPushButton("Improve README")
-        self.linkedin_post_btn = QPushButton("Create LinkedIn Post")
-        self.ask_ai_btn = QPushButton("Ask AI")
-        
-        self.analyze_btn.clicked.connect(lambda: self.handle_ai_action("Analyze Project"))
-        self.improve_readme_btn.clicked.connect(lambda: self.handle_ai_action("Improve README"))
-        self.linkedin_post_btn.clicked.connect(lambda: self.handle_ai_action("Create LinkedIn Post"))
-        self.ask_ai_btn.clicked.connect(lambda: self.handle_ai_action("Ask AI"))
-        
-        self.ai_layout.addWidget(self.analyze_btn)
-        self.ai_layout.addWidget(self.improve_readme_btn)
-        self.ai_layout.addWidget(self.linkedin_post_btn)
-        self.ai_layout.addWidget(self.ask_ai_btn)
-        self.ai_layout.addStretch()
-        self.tabs.addTab(self.ai_tab, "AI")
-        
-    def handle_ai_action(self, action_name):
-        has_ai = False
         try:
             from database.repository import ProviderRepository
             provider_repo = ProviderRepository(self.db)
@@ -121,13 +103,6 @@ class ProjectDetailWidget(QWidget):
                 has_ai = True
         except Exception:
             pass
-            
-        if not has_ai:
-            QMessageBox.warning(self, "AI Error", "AI provider not configured. Please configure an AI provider in Settings first.")
-            return
-            
-        QMessageBox.information(self, "AI Action", f"Action '{action_name}' triggered for project '{self.project_data.get('name', 'Unknown')}'. (AI integration pending)")
-
     def load_project(self, project_id):
         self.project_id = project_id
         self.project_data = self.repo.get_project(project_id)
@@ -143,6 +118,9 @@ class ProjectDetailWidget(QWidget):
         self.load_tasks()
         self.load_docs()
         self.load_activities()
+        
+        # Initialize chat context for this specific project
+        self.chat_page.set_chat_context(f"project_{project_id}")
         
     def load_tasks(self):
         self.tasks_list.clear()
