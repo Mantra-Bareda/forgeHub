@@ -49,10 +49,10 @@ def main():
     app.aboutToQuit.connect(cleanup)
     
     window = MainWindow(config, db_manager)
-    window.show()
+    window.showMaximized()
     
     providers = provider_repo.get_providers()
-    has_key = any(p.get("api_key") for p in providers)
+    has_key = any(p.get("keys") and len(p["keys"]) > 0 for p in providers)
     if not has_key:
         QMessageBox.information(window, "Welcome to Forge Hub!", "It looks like this is your first time here or you haven't set up any API keys. Please navigate to the AI Providers section to add your API keys.")
     

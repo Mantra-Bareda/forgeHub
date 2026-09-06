@@ -17,8 +17,17 @@ class BackgroundInsightsWorker(QRunnable):
         
     def run(self):
         try:
-            from database.repository import ProfileRepository
+            from database.repository import ProfileRepository, ProjectRepository
             repo = ProfileRepository(self.db)
+            proj_repo = ProjectRepository(self.db)
+            
+            internal_projects = proj_repo.get_projects()
+            internal_proj_str = [p['name'] for p in internal_projects]
+            
+            internal_achievements = repo.get_achievements()
+            internal_ach_str = [a['title'] for a in internal_achievements]
+            
+            cross_ref_str = f"\n\n--- FOR COMPARISON ---\nINTERNAL (Private) Projects: {internal_proj_str}\nINTERNAL Achievements: {internal_ach_str}\n"
             
             if self.platform == "linkedin":
                 data = repo.get_linkedin_data()
@@ -31,14 +40,16 @@ class BackgroundInsightsWorker(QRunnable):
                 projects = [p['title'] for p in repo.get_linkedin_projects()]
                 
                 context_str += f"Skills: {skills}\nLanguages: {langs}\nCertificates: {certs}\nProjects: {projects}"
+                context_str += cross_ref_str
                 
-                prompt = "Analyze this LinkedIn profile. Provide 3-4 specific, actionable suggestions on what to add, what to remove (e.g., redundant skills), or how to improve it to stand out more. Use markdown bullet points."
+                prompt = "Analyze this LinkedIn profile. Compare the LinkedIn profile data against the internal private projects/achievements. Provide 3-4 specific, actionable suggestions. For example, if an internal project or achievement is missing from LinkedIn, suggest adding it. Also suggest what to remove (e.g., redundant skills), or how to improve it. Use markdown bullet points."
                 
             elif self.platform == "github":
                 data = repo.get_github_data()
                 context_str = f"GitHub Profile:\nUsername: {data.get('username')}\nProfile README: {data.get('profile_readme')}\nProjects Summary: {data.get('projects_summary')}"
+                context_str += cross_ref_str
                 
-                prompt = "Analyze this GitHub profile. Provide 3-4 specific, actionable suggestions on what to add (e.g., more project links, tech stack details), what to remove, or how to improve the README. Use markdown bullet points."
+                prompt = "Analyze this GitHub profile. Compare it against the internal private projects. Provide 3-4 specific, actionable suggestions. If an internal project is missing from the GitHub summary, suggest adding it. Also suggest what to remove, or how to improve the README. Use markdown bullet points."
             
             else:
                 return
