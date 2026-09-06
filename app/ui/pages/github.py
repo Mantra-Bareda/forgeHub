@@ -13,16 +13,25 @@ class GitHubPage(QWidget):
         header.setStyleSheet("font-size: 24px; font-weight: bold;")
         main_layout.addWidget(header)
         
-        from PySide6.QtWidgets import QSplitter
+        from PySide6.QtWidgets import QStackedWidget, QHBoxLayout
         from app.ui.pages.chat import AIChatPage
         
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        main_layout.addWidget(splitter, stretch=1)
+        self.stacked_widget = QStackedWidget()
+        main_layout.addWidget(self.stacked_widget, stretch=1)
         
-        # Left side: Form
+        # --- Form Page ---
         form_container = QWidget()
         form_layout = QVBoxLayout(form_container)
-        form_layout.setContentsMargins(0, 0, 10, 0)
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Header actions
+        header_actions = QHBoxLayout()
+        header_actions.addStretch()
+        open_chat_btn = QPushButton("Open GitHub AI Chat")
+        open_chat_btn.setStyleSheet("font-weight: bold; padding: 5px 15px; background-color: #2196F3; color: white;")
+        open_chat_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(1))
+        header_actions.addWidget(open_chat_btn)
+        form_layout.addLayout(header_actions)
         
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -56,14 +65,22 @@ class GitHubPage(QWidget):
         save_btn.clicked.connect(self.save_preferences)
         form_layout.addWidget(save_btn)
         
-        splitter.addWidget(form_container)
+        self.stacked_widget.addWidget(form_container)
         
-        # Right side: AI Chat
+        # --- Chat Page ---
+        chat_container = QWidget()
+        chat_layout = QVBoxLayout(chat_container)
+        chat_layout.setContentsMargins(0, 0, 0, 0)
+        
+        back_btn = QPushButton("← Back to Form")
+        back_btn.setStyleSheet("font-weight: bold; padding: 5px;")
+        back_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
+        chat_layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        
         self.chat_page = AIChatPage(db_manager, chat_context="github")
-        splitter.addWidget(self.chat_page)
+        chat_layout.addWidget(self.chat_page, stretch=1)
         
-        # Give chat more space by default
-        splitter.setSizes([400, 600])
+        self.stacked_widget.addWidget(chat_container)
         
         self.load_data()
 

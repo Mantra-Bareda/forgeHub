@@ -228,6 +228,84 @@ class ProfileRepository(Repository):
             cursor.execute("DELETE FROM linkedin_posts WHERE id = ?", (post_id,))
             conn.commit()
 
+    def get_linkedin_certificates(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM linkedin_certificates ORDER BY created_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_linkedin_certificate(self, title, description):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO linkedin_certificates (title, description) VALUES (?, ?)", (title, description))
+            conn.commit()
+
+    def delete_linkedin_certificate(self, cert_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM linkedin_certificates WHERE id = ?", (cert_id,))
+            conn.commit()
+
+    def get_linkedin_projects(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM linkedin_projects ORDER BY created_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_linkedin_project(self, title, description):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO linkedin_projects (title, description) VALUES (?, ?)", (title, description))
+            conn.commit()
+
+    def delete_linkedin_project(self, project_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM linkedin_projects WHERE id = ?", (project_id,))
+            conn.commit()
+
+    def get_linkedin_skills(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM linkedin_skills ORDER BY id ASC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_linkedin_skill(self, name):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("INSERT INTO linkedin_skills (name) VALUES (?)", (name,))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                pass
+
+    def delete_linkedin_skill(self, name):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM linkedin_skills WHERE name = ?", (name,))
+            conn.commit()
+
+    def get_linkedin_languages(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM linkedin_languages ORDER BY id ASC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def add_linkedin_language(self, name):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute("INSERT INTO linkedin_languages (name) VALUES (?)", (name,))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                pass
+
+    def delete_linkedin_language(self, name):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM linkedin_languages WHERE name = ?", (name,))
+            conn.commit()
+
     def get_github_data(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
