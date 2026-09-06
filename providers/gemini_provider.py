@@ -79,7 +79,12 @@ class GeminiProvider(AIProvider):
         }
         
         if system_prompt:
-            payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
+            if "1.5" in model_id.lower() or "gemini-2" in model_id.lower() or "exp" in model_id.lower():
+                payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
+            else:
+                # Fallback for Gemini 1.0 Pro which does not support systemInstruction
+                full_prompt = f"System Instructions:\n{system_prompt}\n\n{full_prompt}"
+                payload["contents"][0]["parts"][0]["text"] = full_prompt
             
         try:
             response = self.client.post(url, json=payload)

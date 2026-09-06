@@ -232,6 +232,38 @@ class ProviderRepository(Repository):
                 cursor.execute("INSERT OR IGNORE INTO ai_providers (name) VALUES (?)", (p,))
             conn.commit()
 
+    def get_provider_usage_stats(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            # Get requests in last 24h and last 1 min, plus total tokens
+            cursor.execute("""
+                SELECT 
+                    a.provider,
+                    COUNT(a.id) as total_requests,
+                    SUM(CASE WHEN a.created_at >= datetime('now', '-1 minute') THEN 1 ELSE 0 END) as req_last_min,
+                    SUM(CASE WHEN a.created_at >= datetime('now', '-1 day') THEN 1 ELSE 0 END) as req_last_day
+                FROM ai_events a
+                GROUP BY a.provider
+            """)
+            events = {row['provider']: dict(row) for row in cursor.fetchall()}
+            
+            cursor.execute("""
+                SELECT 
+                    provider, 
+                    SUM(prompt_tokens) as total_prompt, 
+                    SUM(completion_tokens) as total_comp 
+                FROM usage_info 
+                GROUP BY provider
+            """)
+            for row in cursor.fetchall():
+                p = row['provider']
+                if p not in events:
+                    events[p] = {'provider': p, 'total_requests': 0, 'req_last_min': 0, 'req_last_day': 0}
+                events[p]['total_prompt'] = row['total_prompt'] or 0
+                events[p]['total_comp'] = row['total_comp'] or 0
+                
+            return list(events.values())
+
     def get_providers(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

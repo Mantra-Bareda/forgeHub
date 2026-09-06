@@ -175,24 +175,53 @@ class AIProvidersPage(QWidget):
         self.layout = QVBoxLayout(content_widget)
         self.layout.setSpacing(15)
         
+        # Usage stats block
+        self.usage_group = QGroupBox("AI API Usage Statistics")
+        self.usage_layout = QVBoxLayout(self.usage_group)
+        self.layout.addWidget(self.usage_group)
+        
+        # Cards layout
+        self.cards_layout = QVBoxLayout()
+        self.layout.addLayout(self.cards_layout)
+        self.layout.addStretch()
+        
         scroll.setWidget(content_widget)
         main_layout.addWidget(scroll)
         
         self.load_providers()
         
     def load_providers(self):
-        while self.layout.count():
-            child = self.layout.takeAt(0)
+        while self.cards_layout.count():
+            child = self.cards_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
                 
+        # Load Usage Stats
+        while self.usage_layout.count():
+            child = self.usage_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        stats = self.repo.get_provider_usage_stats()
+        if not stats:
+            lbl = QLabel("No API usage recorded yet.")
+            lbl.setStyleSheet("color: #777; font-style: italic;")
+            self.usage_layout.addWidget(lbl)
+        else:
+            for s in stats:
+                text = f"<b>{s['provider']}</b>: {s['total_requests']} Total Requests | " \
+                       f"{s['req_last_min']} requests in last minute | " \
+                       f"{s['req_last_day']} requests today | " \
+                       f"{s['total_prompt']} Prompt Tokens | {s['total_comp']} Completion Tokens"
+                lbl = QLabel(text)
+                self.usage_layout.addWidget(lbl)
+                
+        # Load Provider Cards
         providers = self.repo.get_providers()
         for p in providers:
             card = ProviderCard(p, self.run_test, self.remove_key, self.repo.get_models)
             self.cards[p["name"]] = card
-            self.layout.addWidget(card)
-            
-        self.layout.addStretch()
+            self.cards_layout.addWidget(card)
 
     def run_test(self, provider_name, api_key, slot, disp_name, enabled, card_widget):
         worker = ProviderTestWorker(provider_name, api_key, slot, self.db)

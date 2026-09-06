@@ -117,7 +117,7 @@ class ProjectDetailWidget(QWidget):
         try:
             from database.repository import ProviderRepository
             provider_repo = ProviderRepository(self.db)
-            if provider_repo.get_active_provider():
+            if provider_repo.get_available_models():
                 has_ai = True
         except Exception:
             pass
