@@ -96,31 +96,9 @@ class ProfilePage(QWidget):
         self.hackathon_list.setMaximumHeight(100)
         self.layout.addWidget(self.hackathon_list)
         
-        # 4.3 Posting History
-        post_header = QHBoxLayout()
-        post_header.addWidget(QLabel("<b>Posting History:</b>"))
-        add_post_btn = QPushButton("+ Add Post")
-        add_post_btn.clicked.connect(self.add_post)
-        post_header.addStretch()
-        post_header.addWidget(add_post_btn)
-        self.layout.addLayout(post_header)
-        
-        self.post_list = QListWidget()
-        self.post_list.setMaximumHeight(100)
-        self.post_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.post_list.customContextMenuRequested.connect(self.post_context_menu)
-        self.layout.addWidget(self.post_list)
+
         
         # 5. Professional Preferences
-        self.layout.addWidget(QLabel("<b>LinkedIn Preferences (Style, formats, tags):</b>"))
-        self.linkedin_input = QTextEdit()
-        self.linkedin_input.setMaximumHeight(60)
-        self.layout.addWidget(self.linkedin_input)
-        
-        self.layout.addWidget(QLabel("<b>GitHub Preferences (README styles, descriptions):</b>"))
-        self.github_input = QTextEdit()
-        self.github_input.setMaximumHeight(60)
-        self.layout.addWidget(self.github_input)
         
         self.layout.addWidget(QLabel("<b>Content Preferences (Tone, style, formats):</b>"))
         self.content_input = QTextEdit()
@@ -243,16 +221,12 @@ class ProfilePage(QWidget):
         profile = self.repo.get_profile()
         self.about_input.setText(profile.get("about") or "")
         self.goals_input.setText(profile.get("professional_goals") or "")
-        self.linkedin_input.setText(profile.get("linkedin_preferences") or "")
-        self.github_input.setText(profile.get("github_preferences") or "")
         self.content_input.setText(profile.get("content_preferences") or "")
         self.avoid_input.setText(profile.get("things_to_avoid") or "")
         
         self._initial_profile_data = {
             "about": profile.get("about") or "",
             "professional_goals": profile.get("professional_goals") or "",
-            "linkedin_preferences": profile.get("linkedin_preferences") or "",
-            "github_preferences": profile.get("github_preferences") or "",
             "content_preferences": profile.get("content_preferences") or "",
             "things_to_avoid": profile.get("things_to_avoid") or ""
         }
@@ -271,7 +245,7 @@ class ProfilePage(QWidget):
         self.load_achievements()
         self.load_certificates()
         self.load_hackathons()
-        self.load_posts()
+
 
     def load_certificates(self):
         self.cert_list.clear()
@@ -289,14 +263,7 @@ class ProfilePage(QWidget):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
                 self.hackathon_list.addItem(item)
 
-    def load_posts(self):
-        self.post_list.clear()
-        repo = PostRepository(self.db)
-        for post in repo.get_posts():
-            content = str(post.get('content', ''))
-            item = QListWidgetItem(f"[{post.get('posted_at','')}] {post.get('platform','')}: {content[:50]}...")
-            item.setData(Qt.ItemDataRole.UserRole, post["id"])
-            self.post_list.addItem(item)
+
 
     def load_skills(self):
         self.skills_list.clear()
@@ -361,33 +328,12 @@ class ProfilePage(QWidget):
 
 
 
-    def add_post(self):
-        dialog = PostDialog(self)
-        if dialog.exec():
-            data = dialog.get_data()
-            repo = PostRepository(self.db)
-            repo.add_post(data["platform"], data["content"])
-            self.load_posts()
-            self.run_intelligence()
 
-    def post_context_menu(self, position):
-        item = self.post_list.itemAt(position)
-        if not item: return
-        menu = QMenu()
-        delete_action = menu.addAction("Delete Post")
-        action = menu.exec(self.post_list.mapToGlobal(position))
-        if action == delete_action:
-            repo = PostRepository(self.db)
-            repo.delete_post(item.data(Qt.ItemDataRole.UserRole))
-            self.load_posts()
-            self.run_intelligence()
 
     def save_profile(self):
         data = {
             "about": self.about_input.toPlainText().strip(),
             "professional_goals": self.goals_input.toPlainText().strip(),
-            "linkedin_preferences": self.linkedin_input.toPlainText().strip(),
-            "github_preferences": self.github_input.toPlainText().strip(),
             "content_preferences": self.content_input.toPlainText().strip(),
             "things_to_avoid": self.avoid_input.toPlainText().strip()
         }

@@ -160,19 +160,21 @@ class ProfileRepository(Repository):
             return dict(row)
 
     def update_profile(self, data):
+        if not data:
+            return
+            
+        set_clauses = []
+        values = []
+        for key, value in data.items():
+            set_clauses.append(f"{key} = ?")
+            values.append(value)
+            
+        set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+        query = f"UPDATE profile SET {', '.join(set_clauses)} WHERE id = (SELECT id FROM profile ORDER BY id ASC LIMIT 1)"
+        
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE profile SET 
-                about = ?, professional_goals = ?, content_preferences = ?, 
-                github_preferences = ?, linkedin_preferences = ?, things_to_avoid = ?,
-                updated_at = CURRENT_TIMESTAMP
-                WHERE id = (SELECT id FROM profile ORDER BY id ASC LIMIT 1)
-            """, (
-                data.get('about', ''), data.get('professional_goals', ''),
-                data.get('content_preferences', ''), data.get('github_preferences', ''),
-                data.get('linkedin_preferences', ''), data.get('things_to_avoid', '')
-            ))
+            cursor.execute(query, tuple(values))
             conn.commit()
 
     def save_overview(self, overview_text):
