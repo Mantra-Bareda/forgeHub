@@ -175,6 +175,15 @@ class ProfileRepository(Repository):
             ))
             conn.commit()
 
+    def save_overview(self, overview_text):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE profile SET ai_overview = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = (SELECT id FROM profile ORDER BY id ASC LIMIT 1)
+            """, (overview_text,))
+            conn.commit()
+
     def get_skills(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS profile (
     github_preferences TEXT,
     linkedin_preferences TEXT,
     things_to_avoid TEXT,
+    ai_overview TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

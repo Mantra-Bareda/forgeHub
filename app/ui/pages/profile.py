@@ -84,33 +84,15 @@ class ProfilePage(QWidget):
         self.layout.addWidget(self.achievements_list)
         
         # 4.1 Certificates
-        cert_header = QHBoxLayout()
-        cert_header.addWidget(QLabel("<b>Certificates:</b>"))
-        add_cert_btn = QPushButton("+ Add Certificate")
-        add_cert_btn.clicked.connect(self.add_certificate)
-        cert_header.addStretch()
-        cert_header.addWidget(add_cert_btn)
-        self.layout.addLayout(cert_header)
-        
+        self.layout.addWidget(QLabel("<b>Certificates (Auto-populated from Achievements):</b>"))
         self.cert_list = QListWidget()
         self.cert_list.setMaximumHeight(100)
-        self.cert_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.cert_list.customContextMenuRequested.connect(self.cert_context_menu)
         self.layout.addWidget(self.cert_list)
         
         # 4.2 Hackathons
-        hack_header = QHBoxLayout()
-        hack_header.addWidget(QLabel("<b>Hackathons:</b>"))
-        add_hack_btn = QPushButton("+ Add Hackathon")
-        add_hack_btn.clicked.connect(self.add_hackathon)
-        hack_header.addStretch()
-        hack_header.addWidget(add_hack_btn)
-        self.layout.addLayout(hack_header)
-        
+        self.layout.addWidget(QLabel("<b>Hackathons (Auto-populated from Achievements):</b>"))
         self.hackathon_list = QListWidget()
         self.hackathon_list.setMaximumHeight(100)
-        self.hackathon_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.hackathon_list.customContextMenuRequested.connect(self.hackathon_context_menu)
         self.layout.addWidget(self.hackathon_list)
         
         # 4.3 Posting History
@@ -228,22 +210,22 @@ class ProfilePage(QWidget):
                     Achievements: {[a['title'] for a in achievements]}
                     Recent Posts: {[p['content'][:50] for p in posts]}
                     
-                    Answer these specific questions concisely:
-                    1. What are my strongest projects?
-                    2. What skills do I demonstrate vs what am I missing based on my goals?
-                    3. What content am I posting too often?
-                    4. What areas are weak?
-                    5. What project should I document next?
-                    6. What content would diversify my profile?
+                    Please provide a detailed, highly structured Markdown analysis of my profile. Use bolding, underlines, and lists to make it readable.
+                    Include the following sections:
+                    ### 🎯 Executive Summary
+                    ### 💪 Key Strengths & Strongest Projects
+                    ### ⚠️ Skill Gaps & Weaknesses
+                    ### 📈 Posting Habits & Recommendations
+                    ### 🚀 Recommended Next Steps (What to build or document next)
                     """
                     
-                    system_prompt = "You are an expert career coach and profile analyzer. Give a highly actionable, structured assessment."
+                    system_prompt = "You are an expert career coach and profile analyzer. Give a highly actionable, structured assessment formatted strictly in Markdown."
                     
                     res, metadata = self.router.route_request(
                         prompt=prompt,
                         category="Reasoning",
                         system_prompt=system_prompt,
-                        max_tokens=1000
+                        max_tokens=2048
                     )
                     self.signals.finished.emit(res)
                 except Exception as e:
@@ -257,7 +239,8 @@ class ProfilePage(QWidget):
     def on_intel_done(self, result):
         self.intelligence_btn.setEnabled(True)
         self.intelligence_btn.setText("Generate AI Profile Analysis")
-        self.intelligence_output.setPlainText(result)
+        self.intelligence_output.setMarkdown(result)
+        self.repo.save_overview(result)
         
     def on_intel_error(self, err):
         self.intelligence_btn.setEnabled(True)
@@ -274,6 +257,10 @@ class ProfilePage(QWidget):
         self.content_input.setText(profile.get("content_preferences") or "")
         self.avoid_input.setText(profile.get("things_to_avoid") or "")
         
+        overview = profile.get("ai_overview")
+        if overview:
+            self.intelligence_output.setMarkdown(overview)
+        
         # Load stats
         stats = self.repo.get_project_stats()
         stats_text = " | ".join([f"{k}: {v}" for k, v in stats.items()])
@@ -288,19 +275,19 @@ class ProfilePage(QWidget):
 
     def load_certificates(self):
         self.cert_list.clear()
-        repo = CertificateRepository(self.db)
-        for cert in repo.get_certificates():
-            item = QListWidgetItem(f"{cert['title']} - {cert['issuer']} ({cert.get('issue_date','')})")
-            item.setData(Qt.ItemDataRole.UserRole, cert["id"])
-            self.cert_list.addItem(item)
+        for ach in self.repo.get_achievements():
+            if ach.get("type") == "Certificate":
+                item = QListWidgetItem(f"{ach['title']} - {ach.get('description','')} ({ach.get('date_achieved','')})")
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+                self.cert_list.addItem(item)
 
     def load_hackathons(self):
         self.hackathon_list.clear()
-        repo = HackathonRepository(self.db)
-        for hack in repo.get_hackathons():
-            item = QListWidgetItem(f"{hack['event_name']} ({hack.get('date','')}) - {hack.get('standing','')}")
-            item.setData(Qt.ItemDataRole.UserRole, hack["id"])
-            self.hackathon_list.addItem(item)
+        for ach in self.repo.get_achievements():
+            if ach.get("type") == "Hackathon":
+                item = QListWidgetItem(f"{ach['title']} - {ach.get('description','')} ({ach.get('date_achieved','')})")
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+                self.hackathon_list.addItem(item)
 
     def load_posts(self):
         self.post_list.clear()
@@ -345,6 +332,10 @@ class ProfilePage(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, ach["id"])
             self.achievements_list.addItem(item)
             
+        # Refresh auto-populated lists
+        self.load_certificates()
+        self.load_hackathons()
+            
     def add_achievement(self):
         dialog = AchievementDialog(self)
         if dialog.exec():
@@ -364,43 +355,7 @@ class ProfilePage(QWidget):
             self.repo.delete_achievement(item.data(Qt.ItemDataRole.UserRole))
             self.load_achievements()
 
-    def add_certificate(self):
-        dialog = CertificateDialog(self)
-        if dialog.exec():
-            data = dialog.get_data()
-            repo = CertificateRepository(self.db)
-            repo.add_certificate(data["title"], data["issuer"], data["date"], None, data["url"])
-            self.load_certificates()
 
-    def cert_context_menu(self, position):
-        item = self.cert_list.itemAt(position)
-        if not item: return
-        menu = QMenu()
-        delete_action = menu.addAction("Delete Certificate")
-        action = menu.exec(self.cert_list.mapToGlobal(position))
-        if action == delete_action:
-            repo = CertificateRepository(self.db)
-            repo.delete_certificate(item.data(Qt.ItemDataRole.UserRole))
-            self.load_certificates()
-
-    def add_hackathon(self):
-        dialog = HackathonDialog(self)
-        if dialog.exec():
-            data = dialog.get_data()
-            repo = HackathonRepository(self.db)
-            repo.add_hackathon(data["event_name"], data["project"], data["standing"], data["date"])
-            self.load_hackathons()
-
-    def hackathon_context_menu(self, position):
-        item = self.hackathon_list.itemAt(position)
-        if not item: return
-        menu = QMenu()
-        delete_action = menu.addAction("Delete Hackathon")
-        action = menu.exec(self.hackathon_list.mapToGlobal(position))
-        if action == delete_action:
-            repo = HackathonRepository(self.db)
-            repo.delete_hackathon(item.data(Qt.ItemDataRole.UserRole))
-            self.load_hackathons()
 
     def add_post(self):
         dialog = PostDialog(self)
@@ -431,4 +386,5 @@ class ProfilePage(QWidget):
             "things_to_avoid": self.avoid_input.toPlainText().strip()
         }
         self.repo.update_profile(data)
-        QMessageBox.information(self, "Success", "Professional profile saved.")
+        QMessageBox.information(self, "Success", "Professional profile saved. Generating new AI Overview...")
+        self.run_intelligence()
