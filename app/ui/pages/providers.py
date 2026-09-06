@@ -6,27 +6,36 @@ from database.repository import ProviderRepository
 from providers import get_provider
 
 class WorkerSignals(QObject):
-    finished = Signal(str, int, bool, str, list)
+    finished = Signal(str, int, bool, str)
 
 class ProviderTestWorker(QRunnable):
-    def __init__(self, provider_name, api_key, slot):
+    def __init__(self, provider_name, api_key, slot, db_manager):
         super().__init__()
         self.provider_name = provider_name
         self.api_key = api_key
         self.slot = slot
+        self.db_manager = db_manager
         self.signals = WorkerSignals()
         
     def run(self):
+        provider = None
         try:
             provider = get_provider(self.provider_name, self.api_key)
             is_valid = provider.test_key()
             if is_valid:
                 models = provider.discover_models()
-                self.signals.finished.emit(self.provider_name, self.slot, True, "Connected & Verified", models)
+                if models:
+                    from database.repository import ProviderRepository
+                    repo = ProviderRepository(self.db_manager)
+                    repo.save_models(self.provider_name, models)
+                self.signals.finished.emit(self.provider_name, self.slot, True, "Connected & Verified")
             else:
-                self.signals.finished.emit(self.provider_name, self.slot, False, provider.get_status(), [])
+                self.signals.finished.emit(self.provider_name, self.slot, False, provider.get_status())
         except Exception as e:
-            self.signals.finished.emit(self.provider_name, self.slot, False, f"Error: {str(e)}", [])
+            self.signals.finished.emit(self.provider_name, self.slot, False, f"Error: {str(e)}")
+        finally:
+            if provider:
+                provider.close()
 
 class ProviderCard(QGroupBox):
     def __init__(self, provider_data, test_callback, remove_callback, models_callback):
@@ -188,11 +197,11 @@ class AIProvidersPage(QWidget):
         self.layout.addStretch()
 
     def run_test(self, provider_name, api_key, slot, disp_name, enabled, card_widget):
-        worker = ProviderTestWorker(provider_name, api_key, slot)
-        worker.signals.finished.connect(lambda name, slt, succ, msg, models: self.on_test_finished(name, api_key, slt, disp_name, enabled, succ, msg, models))
+        worker = ProviderTestWorker(provider_name, api_key, slot, self.db)
+        worker.signals.finished.connect(lambda name, slt, succ, msg: self.on_test_finished(name, api_key, slt, disp_name, enabled, succ, msg))
         self.thread_pool.start(worker)
         
-    def on_test_finished(self, provider_name, api_key, slot, disp_name, enabled, success, status_msg, models):
+    def on_test_finished(self, provider_name, api_key, slot, disp_name, enabled, success, status_msg):
         card = self.cards.get(provider_name)
         if card:
             card.slots[slot]["test_btn"].setEnabled(True)
@@ -203,8 +212,6 @@ class AIProvidersPage(QWidget):
             if success:
                 card.slots[slot]["status_label"].setStyleSheet("color: green; font-weight: bold;")
                 self.repo.save_api_key(provider_name, api_key, status_msg, slot, disp_name, enabled)
-                if models:
-                    self.repo.save_models(provider_name, models)
                 QMessageBox.information(self, "Success", f"Successfully authenticated with {provider_name}.")
             else:
                 card.slots[slot]["status_label"].setStyleSheet("color: red; font-weight: bold;")

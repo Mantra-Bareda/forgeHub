@@ -24,7 +24,12 @@ class GeminiProvider(AIProvider):
                 if "generateContent" in m.get("supportedGenerationMethods", []):
                     name = m.get("name", "").split("/")[-1]
                     cat = "General"
-                    ctx = m.get("inputTokenLimit", 32768)
+                    ctx = m.get("inputTokenLimit")
+                    if ctx is None:
+                        ctx = 32768
+                    else:
+                        ctx = int(ctx)
+                        
                     if ctx >= 128000:
                         cat = "Large Context"
                     elif "ultra" in name.lower() or "pro" in name.lower():
