@@ -172,6 +172,7 @@ class AIProvidersPage(QWidget):
         
         self.cards = {}
         self.active_threads = set()
+        self._startup_tested = False
         
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -240,14 +241,34 @@ class AIProvidersPage(QWidget):
             card = ProviderCard(p, self.db, self.run_test, self.remove_key, self.repo.get_models)
             self.cards[p["name"]] = card
             self.cards_layout.addWidget(card)
+            
+        if not self._startup_tested:
+            self._startup_tested = True
+            self.verify_all_keys()
+            
+    def verify_all_keys(self):
+        providers = self.repo.get_providers()
+        for p in providers:
+            for slot, data in p.get("keys", {}).items():
+                api_key = data.get("api_key")
+                if api_key and api_key != "••••••••":
+                    self.run_test(
+                        p["name"], 
+                        api_key, 
+                        slot, 
+                        data.get("display_name"), 
+                        data.get("enabled", 1), 
+                        self.cards.get(p["name"]),
+                        silent=True
+                    )
 
-    def run_test(self, provider_name, api_key, slot, disp_name, enabled, card_widget):
+    def run_test(self, provider_name, api_key, slot, disp_name, enabled, card_widget, silent=False):
         worker = ProviderTestWorker(provider_name, api_key, slot, self.db)
         self.active_threads.add(worker)
-        worker.finished_signal.connect(lambda name, slt, succ, msg, models: self.on_test_finished(name, api_key, slt, disp_name, enabled, succ, msg, models, worker))
+        worker.finished_signal.connect(lambda name, slt, succ, msg, models: self.on_test_finished(name, api_key, slt, disp_name, enabled, succ, msg, models, worker, silent))
         worker.start()
         
-    def on_test_finished(self, provider_name, api_key, slot, disp_name, enabled, success, status_msg, models, worker):
+    def on_test_finished(self, provider_name, api_key, slot, disp_name, enabled, success, status_msg, models, worker, silent=False):
         if worker in self.active_threads:
             self.active_threads.remove(worker)
             worker.deleteLater()
@@ -273,10 +294,12 @@ class AIProvidersPage(QWidget):
                 if key_id and models:
                     self.repo.save_models(provider_name, key_id, models)
                     
-                QMessageBox.information(self, "Success", f"Successfully authenticated with {provider_name}.")
+                if not silent:
+                    QMessageBox.information(self, "Success", f"Successfully authenticated with {provider_name}.")
             else:
                 card.slots[slot]["status_label"].setStyleSheet("color: red; font-weight: bold;")
-                QMessageBox.warning(self, "Validation Failed", f"Failed to authenticate with {provider_name}.\nError: {status_msg}")
+                if not silent:
+                    QMessageBox.warning(self, "Validation Failed", f"Failed to authenticate with {provider_name}.\nError: {status_msg}")
             
             self.load_providers()
             

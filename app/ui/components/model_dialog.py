@@ -54,6 +54,7 @@ class ModelManagementDialog(QDialog):
                     ""
                 ])
                 item.setData(0, Qt.ItemDataRole.UserRole, row["id"])
+                item.setData(1, Qt.ItemDataRole.UserRole, row["model_id"])
                 
                 # Checkbox
                 chk = QCheckBox()
@@ -73,9 +74,27 @@ class ModelManagementDialog(QDialog):
                 self.items.append((item, chk, rpm, rpd))
                 
     def save_data(self):
+        import json
+        from pathlib import Path
+        
+        prefs_path = Path("database/models_prefs.json")
+        prefs_path.parent.mkdir(exist_ok=True)
+        
+        prefs = {}
+        if prefs_path.exists():
+            try:
+                with open(prefs_path, "r") as f:
+                    prefs = json.load(f)
+            except:
+                pass
+                
+        if self.provider_name not in prefs:
+            prefs[self.provider_name] = {}
+            
         updates = []
         for item, chk, rpm, rpd in self.items:
             m_id = item.data(0, Qt.ItemDataRole.UserRole)
+            model_id_str = item.data(1, Qt.ItemDataRole.UserRole)
             is_enabled = 1 if chk.isChecked() else 0
             
             r_val = rpm.text().strip()
@@ -86,10 +105,22 @@ class ModelManagementDialog(QDialog):
             
             updates.append((is_enabled, rpm_val, rpd_val, m_id))
             
+            # Save to JSON structure
+            prefs[self.provider_name][model_id_str] = {
+                "is_enabled": is_enabled,
+                "rpm_limit": rpm_val,
+                "rpd_limit": rpd_val
+            }
+            
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany("UPDATE models SET is_enabled = ?, rpm_limit = ?, rpd_limit = ? WHERE id = ?", updates)
             conn.commit()
             
+        # Write JSON to disk
+        with open(prefs_path, "w") as f:
+            json.dump(prefs, f, indent=4)
+            
+        from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "Success", "Model preferences and limits saved successfully.")
         self.accept()

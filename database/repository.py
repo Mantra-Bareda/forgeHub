@@ -424,6 +424,9 @@ class ProviderRepository(Repository):
                     pass
 
     def save_models(self, provider_name, key_id, models_list):
+        import json
+        from pathlib import Path
+        
         # Known good models that should default to enabled (others default to disabled)
         good_models = {
             "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-pro-exp", "gemini-2.5-pro", 
@@ -431,6 +434,15 @@ class ProviderRepository(Repository):
             "mistral-large-latest", "mistral-small-latest", "open-mixtral-8x22b",
             "llama3.1-8b", "llama3.1-70b", "llama-3.3-70b-versatile"
         }
+        
+        prefs = {}
+        prefs_path = Path("database/models_prefs.json")
+        if prefs_path.exists():
+            try:
+                with open(prefs_path, "r") as f:
+                    prefs = json.load(f).get(provider_name, {})
+            except:
+                pass
         
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
@@ -442,23 +454,34 @@ class ProviderRepository(Repository):
             
             for m in models_list:
                 m_id = m["model_id"]
-                # Determine default enablement
-                is_enabled = 1 if any(g in m_id.lower() for g in good_models) else 0
+                
+                # Check JSON for user overrides
+                model_prefs = prefs.get(m_id, {})
+                
+                is_enabled = model_prefs.get("is_enabled", 1 if any(g in m_id.lower() for g in good_models) else 0)
+                rpm_limit = model_prefs.get("rpm_limit", None)
+                rpd_limit = model_prefs.get("rpd_limit", None)
                 
                 # Check if model exists for this specific key
                 cursor.execute("SELECT id FROM models WHERE key_id = ? AND model_id = ?", (key_id, m_id))
                 existing = cursor.fetchone()
                 
                 if existing:
+                    # We ONLY update name, context size, etc. The is_enabled/limits stay untouched in the DB UNLESS we explicitly found them in JSON
+                    # To be perfectly safe, we'll UPSERT limits if they were in the JSON file
                     cursor.execute("""
-                        UPDATE models SET name=?, context_size=?, category=?, availability=?
+                        UPDATE models SET name=?, context_size=?, category=?, availability=?,
+                        is_enabled = COALESCE(?, is_enabled),
+                        rpm_limit = COALESCE(?, rpm_limit),
+                        rpd_limit = COALESCE(?, rpd_limit)
                         WHERE id=?
-                    """, (m["name"], m["context_size"], m["category"], m["availability"], existing["id"]))
+                    """, (m["name"], m["context_size"], m["category"], m["availability"], 
+                          model_prefs.get("is_enabled"), model_prefs.get("rpm_limit"), model_prefs.get("rpd_limit"), existing["id"]))
                 else:
                     cursor.execute("""
-                        INSERT INTO models (provider_id, key_id, model_id, name, context_size, category, availability, is_enabled)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (p_id, key_id, m_id, m["name"], m["context_size"], m["category"], m["availability"], is_enabled))
+                        INSERT INTO models (provider_id, key_id, model_id, name, context_size, category, availability, is_enabled, rpm_limit, rpd_limit)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (p_id, key_id, m_id, m["name"], m["context_size"], m["category"], m["availability"], is_enabled, rpm_limit, rpd_limit))
             
             conn.commit()
             
