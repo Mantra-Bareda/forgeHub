@@ -271,6 +271,47 @@ class ProviderRepository(Repository):
                 
             return list(events.values())
 
+    def get_model_usage_stats(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT p.name as provider, m.model_id as model, m.name as display_name
+                FROM models m
+                JOIN ai_providers p ON m.provider_id = p.id
+            """)
+            models_dict = {}
+            for row in cursor.fetchall():
+                p = row['provider']
+                m = row['model']
+                if p not in models_dict:
+                    models_dict[p] = {}
+                models_dict[p][m] = {
+                    "display_name": row["display_name"],
+                    "req_last_min": 0,
+                    "req_last_day": 0,
+                    "total_requests": 0,
+                    "rpm": "API Hidden",
+                    "rpd": "API Hidden"
+                }
+                
+            cursor.execute("""
+                SELECT provider, model,
+                    COUNT(id) as total_requests,
+                    SUM(CASE WHEN created_at >= datetime('now', '-1 minute') THEN 1 ELSE 0 END) as req_last_min,
+                    SUM(CASE WHEN created_at >= datetime('now', '-1 day') THEN 1 ELSE 0 END) as req_last_day
+                FROM ai_events
+                GROUP BY provider, model
+            """)
+            for row in cursor.fetchall():
+                p = row['provider']
+                m = row['model']
+                if p in models_dict and m in models_dict[p]:
+                    models_dict[p][m]["total_requests"] = row["total_requests"]
+                    models_dict[p][m]["req_last_min"] = row["req_last_min"] or 0
+                    models_dict[p][m]["req_last_day"] = row["req_last_day"] or 0
+                    
+            return models_dict
+
     def get_providers(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

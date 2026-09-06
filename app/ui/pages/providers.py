@@ -216,6 +216,10 @@ class AIProvidersPage(QWidget):
                 lbl = QLabel(text)
                 self.usage_layout.addWidget(lbl)
                 
+        detailed_btn = QPushButton("View Detailed Model Statistics")
+        detailed_btn.clicked.connect(self.show_detailed_stats)
+        self.usage_layout.addWidget(detailed_btn)
+                
         # Load Provider Cards
         providers = self.repo.get_providers()
         for p in providers:
@@ -250,6 +254,11 @@ class AIProvidersPage(QWidget):
                 QMessageBox.warning(self, "Validation Failed", f"Failed to authenticate with {provider_name}.\nError: {status_msg}")
             
             self.load_providers()
+            
+    def show_detailed_stats(self):
+        from app.ui.components.usage_dialog import UsageStatisticsDialog
+        dlg = UsageStatisticsDialog(self.db, self)
+        dlg.exec()
             
     def remove_key(self, provider_name, slot, key_id):
         self.repo.delete_api_key(key_id)
