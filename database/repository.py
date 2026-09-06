@@ -245,7 +245,14 @@ class ProviderRepository(Repository):
                 FROM ai_events a
                 GROUP BY a.provider
             """)
-            events = {row['provider']: dict(row) for row in cursor.fetchall()}
+            events = {}
+            for row in cursor.fetchall():
+                d = dict(row)
+                d['req_last_min'] = d.get('req_last_min') or 0
+                d['req_last_day'] = d.get('req_last_day') or 0
+                d['total_prompt'] = 0
+                d['total_comp'] = 0
+                events[d['provider']] = d
             
             cursor.execute("""
                 SELECT 
@@ -258,7 +265,7 @@ class ProviderRepository(Repository):
             for row in cursor.fetchall():
                 p = row['provider']
                 if p not in events:
-                    events[p] = {'provider': p, 'total_requests': 0, 'req_last_min': 0, 'req_last_day': 0}
+                    events[p] = {'provider': p, 'total_requests': 0, 'req_last_min': 0, 'req_last_day': 0, 'total_prompt': 0, 'total_comp': 0}
                 events[p]['total_prompt'] = row['total_prompt'] or 0
                 events[p]['total_comp'] = row['total_comp'] or 0
                 
