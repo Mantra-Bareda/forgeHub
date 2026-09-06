@@ -186,6 +186,48 @@ class ProfileRepository(Repository):
             """, (overview_text,))
             conn.commit()
 
+    def get_linkedin_data(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM linkedin_data ORDER BY id ASC LIMIT 1")
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute("INSERT INTO linkedin_data (username) VALUES ('')")
+                conn.commit()
+                cursor.execute("SELECT * FROM linkedin_data ORDER BY id ASC LIMIT 1")
+                row = cursor.fetchone()
+            return dict(row)
+
+    def update_linkedin_data(self, data):
+        if not data: return
+        set_clauses = [f"{k} = ?" for k in data.keys()]
+        set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+        query = f"UPDATE linkedin_data SET {', '.join(set_clauses)} WHERE id = (SELECT id FROM linkedin_data ORDER BY id ASC LIMIT 1)"
+        with self.db.get_connection() as conn:
+            conn.execute(query, tuple(data.values()))
+            conn.commit()
+
+    def get_github_data(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM github_data ORDER BY id ASC LIMIT 1")
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute("INSERT INTO github_data (username) VALUES ('')")
+                conn.commit()
+                cursor.execute("SELECT * FROM github_data ORDER BY id ASC LIMIT 1")
+                row = cursor.fetchone()
+            return dict(row)
+
+    def update_github_data(self, data):
+        if not data: return
+        set_clauses = [f"{k} = ?" for k in data.keys()]
+        set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+        query = f"UPDATE github_data SET {', '.join(set_clauses)} WHERE id = (SELECT id FROM github_data ORDER BY id ASC LIMIT 1)"
+        with self.db.get_connection() as conn:
+            conn.execute(query, tuple(data.values()))
+            conn.commit()
+
     def get_skills(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

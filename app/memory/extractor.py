@@ -104,6 +104,8 @@ class MemoryExtractor:
         projects = proj_repo.get_projects()
         achievements = prof_repo.get_achievements()
         posts = post_repo.get_posts()
+        linkedin = prof_repo.get_linkedin_data()
+        github = prof_repo.get_github_data()
         
         context_str = f"""
         PROFILE AI OVERVIEW:
@@ -115,14 +117,27 @@ class MemoryExtractor:
         GOALS:
         {profile.get('professional_goals', 'None')}
         
-        SKILLS:
+        SKILLS (General):
         {skills}
         
-        PROJECTS:
+        PROJECTS (Internal):
         {[p['name'] + ' (' + p['status'] + '): ' + p.get('description', '') for p in projects]}
         
-        RECENT POSTS:
-        {[p['content'][:100] for p in posts]}
+        ACHIEVEMENTS:
+        {[a['title'] for a in achievements]}
+        
+        LINKEDIN PROFILE:
+        - Bio: {linkedin.get('bio', '')}
+        - About: {linkedin.get('about', '')}
+        - Skills: {linkedin.get('skills', '')}
+        - Languages: {linkedin.get('languages', '')}
+        - Projects Listed: {linkedin.get('projects', '')}
+        - Certificates: {linkedin.get('certificates', '')}
+        - Posts: {linkedin.get('posts', '')}
+        
+        GITHUB PROFILE:
+        - Profile README: {github.get('profile_readme', '')}
+        - Projects Summary: {github.get('projects_summary', '')}
         """
         
         system_prompt = """
@@ -138,7 +153,7 @@ class MemoryExtractor:
         Rules:
         1. Action must always be "ADD" and category MUST be "Profile Sync".
         2. Keep the content extremely concise and factual.
-        3. Do not include more than 15 highly important facts. Group them if necessary.
+        3. Do not include more than 30 highly important facts. Group them if necessary.
         """
         
         try:

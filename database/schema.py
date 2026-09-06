@@ -169,6 +169,29 @@ CREATE TABLE IF NOT EXISTS usage_info (
     completion_tokens INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- LinkedIn Data
+CREATE TABLE IF NOT EXISTS linkedin_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    bio TEXT,
+    about TEXT,
+    posts TEXT,
+    certificates TEXT,
+    projects TEXT,
+    languages TEXT,
+    skills TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GitHub Data
+CREATE TABLE IF NOT EXISTS github_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    profile_readme TEXT,
+    projects_summary TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 def initialize_database(db_manager):
