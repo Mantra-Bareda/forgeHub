@@ -275,9 +275,10 @@ class ProviderRepository(Repository):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT p.name as provider, m.model_id as model, m.name as display_name
+                SELECT p.name as provider, m.model_id as model, m.name as display_name, m.rpm_limit, m.rpd_limit
                 FROM models m
                 JOIN ai_providers p ON m.provider_id = p.id
+                WHERE m.is_enabled = 1
             """)
             models_dict = {}
             for row in cursor.fetchall():
@@ -290,8 +291,8 @@ class ProviderRepository(Repository):
                     "req_last_min": 0,
                     "req_last_day": 0,
                     "total_requests": 0,
-                    "rpm": "API Hidden",
-                    "rpd": "API Hidden"
+                    "rpm": str(row["rpm_limit"]) if row["rpm_limit"] else "API Hidden",
+                    "rpd": str(row["rpd_limit"]) if row["rpd_limit"] else "API Hidden"
                 }
                 
             cursor.execute("""
@@ -417,34 +418,67 @@ class ProviderRepository(Repository):
                     pass
 
     def save_models(self, provider_name, models_list):
+        # Known good models that should default to enabled (others default to disabled)
+        good_models = {
+            "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-pro-exp", "gemini-2.5-pro", 
+            "llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it",
+            "mistral-large-latest", "mistral-small-latest", "open-mixtral-8x22b",
+            "llama3.1-8b", "llama3.1-70b", "llama-3.3-70b-versatile"
+        }
+        
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM ai_providers WHERE name = ?", (provider_name,))
             provider = cursor.fetchone()
             if not provider: return
             
-            # Clear old models for this provider
-            cursor.execute("DELETE FROM models WHERE provider_id = ?", (provider["id"],))
+            p_id = provider["id"]
             
             for m in models_list:
-                cursor.execute("""
-                    INSERT INTO models (provider_id, model_id, name, context_size, category, availability)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (provider["id"], m["model_id"], m["name"], m["context_size"], m["category"], m["availability"]))
+                m_id = m["model_id"]
+                # Determine default enablement
+                is_enabled = 1 if any(g in m_id.lower() for g in good_models) else 0
+                
+                # Check if model exists
+                cursor.execute("SELECT id FROM models WHERE provider_id = ? AND model_id = ?", (p_id, m_id))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    cursor.execute("""
+                        UPDATE models SET name=?, context_size=?, category=?, availability=?
+                        WHERE id=?
+                    """, (m["name"], m["context_size"], m["category"], m["availability"], existing["id"]))
+                else:
+                    cursor.execute("""
+                        INSERT INTO models (provider_id, model_id, name, context_size, category, availability, is_enabled)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (p_id, m_id, m["name"], m["context_size"], m["category"], m["availability"], is_enabled))
             
             conn.commit()
             
-    def get_models(self, provider_name=None):
+    def get_models(self, provider_name=None, include_disabled=False):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
+            
+            base_query = """
+                SELECT m.* FROM models m
+                JOIN ai_providers p ON m.provider_id = p.id
+            """
+            
+            conditions = []
+            params = []
+            
             if provider_name:
-                cursor.execute("""
-                    SELECT m.* FROM models m
-                    JOIN ai_providers p ON m.provider_id = p.id
-                    WHERE p.name = ?
-                """, (provider_name,))
-            else:
-                cursor.execute("SELECT * FROM models")
+                conditions.append("p.name = ?")
+                params.append(provider_name)
+                
+            if not include_disabled:
+                conditions.append("m.is_enabled = 1")
+                
+            if conditions:
+                base_query += " WHERE " + " AND ".join(conditions)
+                
+            cursor.execute(base_query, params)
             return [dict(row) for row in cursor.fetchall()]
 
     def get_available_models(self, category=None):
@@ -452,12 +486,12 @@ class ProviderRepository(Repository):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             query = """
-                SELECT m.model_id, m.name, m.context_size, m.category, 
+                SELECT m.model_id, m.name, m.context_size, m.category, m.rpm_limit, m.rpd_limit,
                        p.name as provider_name, k.api_key, k.id as key_id 
                 FROM models m
                 JOIN ai_providers p ON m.provider_id = p.id
                 JOIN api_keys_metadata k ON p.id = k.provider_id
-                WHERE k.enabled = 1 AND k.status NOT IN ('Invalid Key', 'Not Configured')
+                WHERE k.enabled = 1 AND k.status NOT IN ('Invalid Key', 'Not Configured') AND m.is_enabled = 1
             """
             params = []
             if category:

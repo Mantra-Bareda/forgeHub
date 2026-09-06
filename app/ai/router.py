@@ -78,6 +78,9 @@ class ModelRouter:
         last_error = None
         attempt_count = 0
         
+        # Pre-fetch usage stats for manual limit checks
+        model_stats = self.repo.get_model_usage_stats()
+        
         for m in models:
             # Dynamically update selection reason if we cross from categorized to generic
             if categorized_models and m in other_models and selection_reason == "Best available model for category":
@@ -87,6 +90,16 @@ class ModelRouter:
             
             if self._is_rate_limited(provider_name):
                 continue
+            
+            # Check manual rate limits
+            rpm_limit = m.get("rpm_limit")
+            rpd_limit = m.get("rpd_limit")
+            if rpm_limit or rpd_limit:
+                stats = model_stats.get(provider_name, {}).get(m["model_id"], {})
+                if rpm_limit and stats.get("req_last_min", 0) >= rpm_limit:
+                    continue
+                if rpd_limit and stats.get("req_last_day", 0) >= rpd_limit:
+                    continue
             
             model_context = m.get("context_size", 0)
             if model_context > 0 and estimated_tokens > model_context:

@@ -36,9 +36,10 @@ class ProviderTestWorker(QThread):
                 provider.close()
 
 class ProviderCard(QGroupBox):
-    def __init__(self, provider_data, test_callback, remove_callback, models_callback):
+    def __init__(self, provider_data, db_manager, test_callback, remove_callback, models_callback):
         super().__init__(provider_data["name"])
         self.provider_data = provider_data
+        self.db = db_manager
         self.test_callback = test_callback
         self.remove_callback = remove_callback
         self.models_callback = models_callback
@@ -62,6 +63,15 @@ class ProviderCard(QGroupBox):
             models_lbl.setWordWrap(True)
             models_lbl.setStyleSheet("color: #555; font-size: 10px;")
             main_layout.addWidget(models_lbl)
+            
+            manage_btn = QPushButton("Manage Models & Limits")
+            manage_btn.clicked.connect(self.manage_models)
+            main_layout.addWidget(manage_btn)
+            
+    def manage_models(self):
+        from app.ui.components.model_dialog import ModelManagementDialog
+        dlg = ModelManagementDialog(self.provider_data["name"], self.db, self)
+        dlg.exec()
         
     def create_slot_ui(self, slot, slot_data):
         box = QGroupBox(f"Key Slot {slot}")
@@ -223,7 +233,7 @@ class AIProvidersPage(QWidget):
         # Load Provider Cards
         providers = self.repo.get_providers()
         for p in providers:
-            card = ProviderCard(p, self.run_test, self.remove_key, self.repo.get_models)
+            card = ProviderCard(p, self.db, self.run_test, self.remove_key, self.repo.get_models)
             self.cards[p["name"]] = card
             self.cards_layout.addWidget(card)
 
