@@ -9,6 +9,8 @@ from app.ui.pages.memory import MemoryPage
 from app.ui.pages.chat import AIChatPage
 from app.ui.pages.providers import AIProvidersPage
 from app.ui.pages.settings import SettingsPage
+from app.ui.pages.linkedin import LinkedInPage
+from app.ui.pages.github import GitHubPage
 
 class ClickableLabel(QLabel):
     clicked = Signal()
@@ -66,6 +68,8 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.providers_page)
         
         self.stacked_widget.addWidget(SettingsPage(self.db_manager))
+        self.stacked_widget.addWidget(LinkedInPage(self.db_manager))
+        self.stacked_widget.addWidget(GitHubPage(self.db_manager))
 
         # Keyboard shortcuts
         from PySide6.QtGui import QShortcut, QKeySequence

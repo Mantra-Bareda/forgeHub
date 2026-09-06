@@ -22,6 +22,8 @@ class Sidebar(QWidget):
         self.add_button("Content", 3)
         self.add_button("Memory", 4)
         self.add_button("AI Chat", 5)
+        self.add_button("LinkedIn", 8)
+        self.add_button("GitHub", 9)
         
         # Spacer to push settings/providers to the bottom
         self.layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))

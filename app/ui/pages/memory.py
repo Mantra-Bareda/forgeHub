@@ -58,10 +58,6 @@ class MemoryPage(QWidget):
         header = QLabel("Persistent Memory Core")
         header.setStyleSheet("font-size: 24px; font-weight: bold;")
         
-        self.extract_btn = QPushButton("Extract Memories from Recent Chat")
-        self.extract_btn.setStyleSheet("background-color: #9C27B0; color: white; font-weight: bold;")
-        self.extract_btn.clicked.connect(self.trigger_extraction)
-        
         header_layout.addWidget(header)
         header_layout.addStretch()
         
@@ -70,7 +66,6 @@ class MemoryPage(QWidget):
         self.sync_profile_btn.clicked.connect(self.trigger_profile_sync)
         header_layout.addWidget(self.sync_profile_btn)
         
-        header_layout.addWidget(self.extract_btn)
         self.layout.addLayout(header_layout)
         
         # Subtitle
@@ -138,25 +133,7 @@ class MemoryPage(QWidget):
                 
             self.lists[cat].addItem(item)
             
-    def trigger_extraction(self):
-        self.extract_btn.setEnabled(False)
-        self.extract_btn.setText("Extracting...")
-        
-        worker = ExtractorWorker(self.db_manager)
-        worker.signals.finished.connect(self.on_extracted)
-        worker.signals.error.connect(self.on_error)
-        self.thread_pool.start(worker)
-        
-    def on_extracted(self):
-        self.extract_btn.setEnabled(True)
-        self.extract_btn.setText("Extract Memories from Recent Chat")
-        self.load_memories()
-        
-    def on_error(self, err):
-        self.extract_btn.setEnabled(True)
-        self.extract_btn.setText("Extract Memories from Recent Chat")
-        QMessageBox.warning(self, "Extraction Failed", f"Could not extract memories: {err}")
-        
+
     def trigger_profile_sync(self):
         self.sync_profile_btn.setEnabled(False)
         self.sync_profile_btn.setText("Syncing...")
