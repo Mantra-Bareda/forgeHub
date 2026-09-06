@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 from PySide6.QtCore import Qt
 from database.repository import ProfileRepository, CertificateRepository, HackathonRepository, PostRepository
 from app.ui.components.achievement_dialog import AchievementDialog
+from app.ui.components.profile_dialogs import CertificateDialog, HackathonDialog, PostDialog
 
 class ProfilePage(QWidget):
     def __init__(self, db_manager):
@@ -83,21 +84,48 @@ class ProfilePage(QWidget):
         self.layout.addWidget(self.achievements_list)
         
         # 4.1 Certificates
-        self.layout.addWidget(QLabel("<b>Certificates:</b>"))
+        cert_header = QHBoxLayout()
+        cert_header.addWidget(QLabel("<b>Certificates:</b>"))
+        add_cert_btn = QPushButton("+ Add Certificate")
+        add_cert_btn.clicked.connect(self.add_certificate)
+        cert_header.addStretch()
+        cert_header.addWidget(add_cert_btn)
+        self.layout.addLayout(cert_header)
+        
         self.cert_list = QListWidget()
         self.cert_list.setMaximumHeight(100)
+        self.cert_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.cert_list.customContextMenuRequested.connect(self.cert_context_menu)
         self.layout.addWidget(self.cert_list)
         
         # 4.2 Hackathons
-        self.layout.addWidget(QLabel("<b>Hackathons:</b>"))
+        hack_header = QHBoxLayout()
+        hack_header.addWidget(QLabel("<b>Hackathons:</b>"))
+        add_hack_btn = QPushButton("+ Add Hackathon")
+        add_hack_btn.clicked.connect(self.add_hackathon)
+        hack_header.addStretch()
+        hack_header.addWidget(add_hack_btn)
+        self.layout.addLayout(hack_header)
+        
         self.hackathon_list = QListWidget()
         self.hackathon_list.setMaximumHeight(100)
+        self.hackathon_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.hackathon_list.customContextMenuRequested.connect(self.hackathon_context_menu)
         self.layout.addWidget(self.hackathon_list)
         
         # 4.3 Posting History
-        self.layout.addWidget(QLabel("<b>Posting History:</b>"))
+        post_header = QHBoxLayout()
+        post_header.addWidget(QLabel("<b>Posting History:</b>"))
+        add_post_btn = QPushButton("+ Add Post")
+        add_post_btn.clicked.connect(self.add_post)
+        post_header.addStretch()
+        post_header.addWidget(add_post_btn)
+        self.layout.addLayout(post_header)
+        
         self.post_list = QListWidget()
         self.post_list.setMaximumHeight(100)
+        self.post_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.post_list.customContextMenuRequested.connect(self.post_context_menu)
         self.layout.addWidget(self.post_list)
         
         # 5. Professional Preferences
@@ -262,20 +290,26 @@ class ProfilePage(QWidget):
         self.cert_list.clear()
         repo = CertificateRepository(self.db)
         for cert in repo.get_certificates():
-            self.cert_list.addItem(f"{cert['title']} - {cert['issuer']} ({cert.get('issue_date','')})")
+            item = QListWidgetItem(f"{cert['title']} - {cert['issuer']} ({cert.get('issue_date','')})")
+            item.setData(Qt.ItemDataRole.UserRole, cert["id"])
+            self.cert_list.addItem(item)
 
     def load_hackathons(self):
         self.hackathon_list.clear()
         repo = HackathonRepository(self.db)
         for hack in repo.get_hackathons():
-            self.hackathon_list.addItem(f"{hack['event_name']} ({hack.get('date','')}) - {hack.get('standing','')}")
+            item = QListWidgetItem(f"{hack['event_name']} ({hack.get('date','')}) - {hack.get('standing','')}")
+            item.setData(Qt.ItemDataRole.UserRole, hack["id"])
+            self.hackathon_list.addItem(item)
 
     def load_posts(self):
         self.post_list.clear()
         repo = PostRepository(self.db)
         for post in repo.get_posts():
             content = str(post.get('content', ''))
-            self.post_list.addItem(f"[{post.get('posted_at','')}] {post.get('platform','')}: {content[:50]}...")
+            item = QListWidgetItem(f"[{post.get('posted_at','')}] {post.get('platform','')}: {content[:50]}...")
+            item.setData(Qt.ItemDataRole.UserRole, post["id"])
+            self.post_list.addItem(item)
 
     def load_skills(self):
         self.skills_list.clear()
@@ -329,6 +363,63 @@ class ProfilePage(QWidget):
         if action == delete_action:
             self.repo.delete_achievement(item.data(Qt.ItemDataRole.UserRole))
             self.load_achievements()
+
+    def add_certificate(self):
+        dialog = CertificateDialog(self)
+        if dialog.exec():
+            data = dialog.get_data()
+            repo = CertificateRepository(self.db)
+            repo.add_certificate(data["title"], data["issuer"], data["date"], None, data["url"])
+            self.load_certificates()
+
+    def cert_context_menu(self, position):
+        item = self.cert_list.itemAt(position)
+        if not item: return
+        menu = QMenu()
+        delete_action = menu.addAction("Delete Certificate")
+        action = menu.exec(self.cert_list.mapToGlobal(position))
+        if action == delete_action:
+            repo = CertificateRepository(self.db)
+            repo.delete_certificate(item.data(Qt.ItemDataRole.UserRole))
+            self.load_certificates()
+
+    def add_hackathon(self):
+        dialog = HackathonDialog(self)
+        if dialog.exec():
+            data = dialog.get_data()
+            repo = HackathonRepository(self.db)
+            repo.add_hackathon(data["event_name"], data["project"], data["standing"], data["date"])
+            self.load_hackathons()
+
+    def hackathon_context_menu(self, position):
+        item = self.hackathon_list.itemAt(position)
+        if not item: return
+        menu = QMenu()
+        delete_action = menu.addAction("Delete Hackathon")
+        action = menu.exec(self.hackathon_list.mapToGlobal(position))
+        if action == delete_action:
+            repo = HackathonRepository(self.db)
+            repo.delete_hackathon(item.data(Qt.ItemDataRole.UserRole))
+            self.load_hackathons()
+
+    def add_post(self):
+        dialog = PostDialog(self)
+        if dialog.exec():
+            data = dialog.get_data()
+            repo = PostRepository(self.db)
+            repo.add_post(data["platform"], data["content"])
+            self.load_posts()
+
+    def post_context_menu(self, position):
+        item = self.post_list.itemAt(position)
+        if not item: return
+        menu = QMenu()
+        delete_action = menu.addAction("Delete Post")
+        action = menu.exec(self.post_list.mapToGlobal(position))
+        if action == delete_action:
+            repo = PostRepository(self.db)
+            repo.delete_post(item.data(Qt.ItemDataRole.UserRole))
+            self.load_posts()
 
     def save_profile(self):
         data = {
