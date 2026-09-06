@@ -32,6 +32,27 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QHBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+        
+        # Window styling
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #0b0f17;
+            }
+            QStatusBar {
+                background-color: #0b0f17;
+                color: #94a3b8;
+                border-top: 1px solid #1e293b;
+                border-bottom: none;
+                border-left: none;
+                border-right: none;
+                font-size: 11px;
+                padding-left: 12px;
+            }
+            QStatusBar::item {
+                border: none;
+            }
+        """)
         
         # Sidebar
         self.sidebar = Sidebar()
@@ -39,22 +60,28 @@ class MainWindow(QMainWindow):
         
         # Stacked Widget for pages
         self.stacked_widget = QStackedWidget()
+        self.stacked_widget.setStyleSheet("background-color: #0b0f17;")
         self.main_layout.addWidget(self.stacked_widget)
         
         self.setup_pages()
         
         # Connect sidebar navigation
-        self.sidebar.page_selected.connect(self.stacked_widget.setCurrentIndex)
+        self.sidebar.page_selected.connect(self.on_page_selected)
         
         # Initialize Status Bar
         self.status_bar = self.statusBar()
         self.status_label = ClickableLabel("AI Status: Ready")
+        self.status_label.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: 500;")
         self.status_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.status_label.clicked.connect(lambda: self.sidebar.page_selected.emit(6)) # Navigate to AI Providers
+        self.status_label.clicked.connect(lambda: self.on_page_selected(6)) # Navigate to AI Providers
         self.status_bar.addWidget(self.status_label)
         
         # Connect AI providers page to status updates
         self.providers_page.status_updated.connect(self.status_label.setText)
+
+    def on_page_selected(self, index):
+        self.stacked_widget.setCurrentIndex(index)
+        self.sidebar.select_page(index)
 
     def setup_pages(self):
         self.dashboard_page = DashboardPage(self.db_manager)

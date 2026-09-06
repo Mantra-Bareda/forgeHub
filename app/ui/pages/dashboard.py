@@ -30,6 +30,10 @@ class StatCard(QFrame):
                 background-color: #182338;
                 border: 1px solid #334155;
             }
+            #statCard QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
         """)
 
         layout = QVBoxLayout(self)
@@ -42,11 +46,12 @@ class StatCard(QFrame):
         top_layout.setSpacing(8)
 
         icon_lbl = QLabel()
+        icon_lbl.setStyleSheet("background: transparent;")
         icon_lbl.setPixmap(get_svg_pixmap(icon_name, icon_color, 18))
         top_layout.addWidget(icon_lbl)
 
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #cbd5e1;")
+        title_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #cbd5e1; background: transparent;")
         top_layout.addWidget(title_lbl)
         top_layout.addStretch()
 
@@ -65,7 +70,7 @@ class StatCard(QFrame):
 
         # Middle: Animated Big Number
         self.val_lbl = QLabel("0")
-        self.val_lbl.setStyleSheet("font-size: 32px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px;")
+        self.val_lbl.setStyleSheet("font-size: 32px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; background: transparent;")
         layout.addWidget(self.val_lbl)
 
         # Bottom Row: Subtitle + Arrow
@@ -73,12 +78,12 @@ class StatCard(QFrame):
         bot_layout.setContentsMargins(0, 4, 0, 0)
 
         bot_lbl = QLabel(bottom_html)
-        bot_lbl.setStyleSheet("font-size: 12px; color: #94a3b8;")
+        bot_lbl.setStyleSheet("font-size: 12px; color: #94a3b8; background: transparent;")
         bot_layout.addWidget(bot_lbl)
         bot_layout.addStretch()
 
         self.arrow_lbl = QLabel("→")
-        self.arrow_lbl.setStyleSheet("font-size: 14px; color: #64748b; font-weight: bold;")
+        self.arrow_lbl.setStyleSheet("font-size: 14px; color: #64748b; font-weight: bold; background: transparent;")
         bot_layout.addWidget(self.arrow_lbl)
 
         layout.addLayout(bot_layout)
@@ -91,11 +96,11 @@ class StatCard(QFrame):
         self._anim.finished.connect(lambda: self.val_lbl.setText(str(self.target_value)))
 
     def enterEvent(self, event):
-        self.arrow_lbl.setStyleSheet("font-size: 14px; color: #cbd5e1; font-weight: bold;")
+        self.arrow_lbl.setStyleSheet("font-size: 14px; color: #cbd5e1; font-weight: bold; background: transparent;")
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        self.arrow_lbl.setStyleSheet("font-size: 14px; color: #64748b; font-weight: bold;")
+        self.arrow_lbl.setStyleSheet("font-size: 14px; color: #64748b; font-weight: bold; background: transparent;")
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
@@ -125,13 +130,17 @@ class ProjectRowWidget(QFrame):
         self.setFixedHeight(54)
         self.setStyleSheet("""
             #projRow {
-                background-color: rgba(15, 23, 42, 0.45);
+                background-color: #0f172a;
                 border: 1px solid transparent;
                 border-radius: 8px;
             }
             #projRow:hover {
                 background-color: #1e293b;
                 border: 1px solid #334155;
+            }
+            #projRow QLabel {
+                background: transparent;
+                background-color: transparent;
             }
         """)
 
@@ -147,6 +156,7 @@ class ProjectRowWidget(QFrame):
         ib_layout.setContentsMargins(0, 0, 0, 0)
         ib_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_lbl = QLabel()
+        icon_lbl.setStyleSheet("background: transparent;")
         icon_lbl.setPixmap(get_svg_pixmap(icon_name, icon_color, 18))
         ib_layout.addWidget(icon_lbl)
         layout.addWidget(icon_box)
@@ -158,14 +168,14 @@ class ProjectRowWidget(QFrame):
 
         name = project_data.get("name", "Unnamed Project")
         name_lbl = QLabel(name)
-        name_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #f1f5f9;")
+        name_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #f1f5f9; background: transparent;")
         info_layout.addWidget(name_lbl)
 
         desc = project_data.get("description") or "No description provided."
         if len(desc) > 50:
             desc = desc[:47] + "..."
         desc_lbl = QLabel(desc)
-        desc_lbl.setStyleSheet("font-size: 12px; color: #94a3b8;")
+        desc_lbl.setStyleSheet("font-size: 12px; color: #94a3b8; background: transparent;")
         info_layout.addWidget(desc_lbl)
         layout.addLayout(info_layout, stretch=1)
 
@@ -187,7 +197,7 @@ class ProjectRowWidget(QFrame):
 
         status_str = project_data.get("status") or "Active"
         time_lbl = QLabel(status_str)
-        time_lbl.setStyleSheet("font-size: 11px; color: #64748b;")
+        time_lbl.setStyleSheet("font-size: 11px; color: #64748b; background: transparent;")
         time_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(time_lbl)
 
@@ -205,13 +215,17 @@ class AchievementRowWidget(QFrame):
         self.setFixedHeight(68)
         self.setStyleSheet("""
             #achRow {
-                background-color: rgba(15, 23, 42, 0.45);
+                background-color: #0f172a;
                 border: 1px solid transparent;
                 border-radius: 8px;
             }
             #achRow:hover {
                 background-color: #1e293b;
                 border: 1px solid #334155;
+            }
+            #achRow QLabel {
+                background: transparent;
+                background-color: transparent;
             }
         """)
 
@@ -241,6 +255,7 @@ class AchievementRowWidget(QFrame):
         ib_layout.setContentsMargins(0, 0, 0, 0)
         ib_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_lbl = QLabel()
+        icon_lbl.setStyleSheet("background: transparent;")
         icon_lbl.setPixmap(get_svg_pixmap(icon_name, icon_color, 18))
         ib_layout.addWidget(icon_lbl)
         layout.addWidget(icon_box)
@@ -258,13 +273,13 @@ class AchievementRowWidget(QFrame):
         top_row.addStretch()
 
         date_lbl = QLabel(str(ach_data.get("date_achieved") or "")[:10])
-        date_lbl.setStyleSheet("font-size: 11px; color: #64748b;")
+        date_lbl.setStyleSheet("font-size: 11px; color: #64748b; background: transparent;")
         top_row.addWidget(date_lbl)
         content_layout.addLayout(top_row)
 
         # Title
         title_lbl = QLabel(ach_data.get("title", "Achievement Title"))
-        title_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #f1f5f9;")
+        title_lbl.setStyleSheet("font-size: 13px; font-weight: 500; color: #f1f5f9; background: transparent;")
         content_layout.addWidget(title_lbl)
 
         # Description
@@ -272,7 +287,7 @@ class AchievementRowWidget(QFrame):
         if len(desc_text) > 60:
             desc_text = desc_text[:57] + "..."
         desc_lbl = QLabel(desc_text)
-        desc_lbl.setStyleSheet("font-size: 12px; color: #94a3b8;")
+        desc_lbl.setStyleSheet("font-size: 12px; color: #94a3b8; background: transparent;")
         content_layout.addWidget(desc_lbl)
 
         layout.addLayout(content_layout, stretch=1)
@@ -287,7 +302,15 @@ class DashboardPage(QWidget):
         super().__init__()
         self.db = db_manager
         self.setObjectName("dashboardRoot")
-        self.setStyleSheet("background-color: #0b0f17;")
+        self.setStyleSheet("""
+            #dashboardRoot {
+                background-color: #0b0f17;
+            }
+            QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
+        """)
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -318,6 +341,12 @@ class DashboardPage(QWidget):
         """)
 
         self.content_widget = QWidget()
+        self.content_widget.setStyleSheet("""
+            QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
+        """)
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(24, 20, 24, 24)
         self.content_layout.setSpacing(16)
@@ -360,7 +389,7 @@ class DashboardPage(QWidget):
         title_row.setSpacing(8)
 
         title_lbl = QLabel("Dashboard")
-        title_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px;")
+        title_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; background: transparent;")
         title_row.addWidget(title_lbl)
 
         v_badge = QLabel("v2.4")
@@ -378,13 +407,13 @@ class DashboardPage(QWidget):
         left_box.addLayout(title_row)
 
         subtitle = QLabel("Welcome to Forge Hub — Your Personal Professional AI Manager")
-        subtitle.setStyleSheet("font-size: 13px; color: #94a3b8;")
+        subtitle.setStyleSheet("font-size: 13px; color: #94a3b8; background: transparent;")
         left_box.addWidget(subtitle)
         header_row.addLayout(left_box, 1)
 
-        # Right: Quick action toolbar
+        # Right: Action toolbar (Quick action button removed as requested)
         actions_row = QHBoxLayout()
-        actions_row.setSpacing(8)
+        actions_row.setSpacing(10)
 
         # Synced status pill
         synced_pill = QFrame()
@@ -404,35 +433,9 @@ class DashboardPage(QWidget):
         sp_layout.addWidget(dot)
 
         sp_text = QLabel("Synced")
-        sp_text.setStyleSheet("font-size: 12px; font-weight: 500; color: #cbd5e1;")
+        sp_text.setStyleSheet("font-size: 12px; font-weight: 500; color: #cbd5e1; background: transparent;")
         sp_layout.addWidget(sp_text)
         actions_row.addWidget(synced_pill)
-
-        # Quick Action button
-        quick_btn = QPushButton("Quick Action  ⌘K")
-        quick_btn.setIcon(get_svg_icon("terminal", "#94a3b8", 14))
-        quick_btn.setFixedHeight(32)
-        quick_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        quick_btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(30, 41, 59, 0.8);
-                border: 1px solid rgba(51, 65, 85, 0.5);
-                color: #e2e8f0;
-                font-size: 12px;
-                font-weight: 500;
-                border-radius: 6px;
-                padding: 0 12px;
-            }
-            QPushButton:hover {
-                background-color: #273549;
-                border-color: #475569;
-                color: #ffffff;
-            }
-            QPushButton:pressed {
-                background-color: #131b2a;
-            }
-        """)
-        actions_row.addWidget(quick_btn)
 
         # New Project button
         new_proj_btn = QPushButton("New Project")
@@ -447,7 +450,7 @@ class DashboardPage(QWidget):
                 font-size: 12px;
                 font-weight: 500;
                 border-radius: 6px;
-                padding: 0 14px;
+                padding: 0 16px;
             }
             QPushButton:hover {
                 background-color: #3b82f6;
@@ -480,6 +483,10 @@ class DashboardPage(QWidget):
                 border: 1px solid #1e293b;
                 border-radius: 8px;
             }
+            QFrame#projPane QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
         """)
         self.proj_pane.setObjectName("projPane")
         self.proj_pane_layout = QVBoxLayout(self.proj_pane)
@@ -489,7 +496,7 @@ class DashboardPage(QWidget):
         # Header for projects pane
         proj_hdr = QHBoxLayout()
         proj_title_lbl = QLabel("Recent Projects")
-        proj_title_lbl.setStyleSheet("font-size: 14px; font-weight: 600; color: #f1f5f9;")
+        proj_title_lbl.setStyleSheet("font-size: 14px; font-weight: 600; color: #f1f5f9; background: transparent;")
         proj_hdr.addWidget(proj_title_lbl)
 
         self.proj_count_badge = QLabel("0")
@@ -529,6 +536,10 @@ class DashboardPage(QWidget):
                 border: 1px solid #1e293b;
                 border-radius: 8px;
             }
+            QFrame#achPane QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
         """)
         self.ach_pane.setObjectName("achPane")
         self.ach_pane_layout = QVBoxLayout(self.ach_pane)
@@ -538,7 +549,7 @@ class DashboardPage(QWidget):
         # Header for achievements pane
         ach_hdr = QHBoxLayout()
         ach_title_lbl = QLabel("Recent Achievements")
-        ach_title_lbl.setStyleSheet("font-size: 14px; font-weight: 600; color: #f1f5f9;")
+        ach_title_lbl.setStyleSheet("font-size: 14px; font-weight: 600; color: #f1f5f9; background: transparent;")
         ach_hdr.addWidget(ach_title_lbl)
 
         self.ach_count_badge = QLabel("0")
@@ -585,6 +596,10 @@ class DashboardPage(QWidget):
                 border-color: #475569;
                 background-color: rgba(30, 41, 59, 0.4);
             }
+            QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
         """)
         ae_layout = QHBoxLayout(add_entry_card)
         ae_layout.setContentsMargins(12, 0, 12, 0)
@@ -595,12 +610,12 @@ class DashboardPage(QWidget):
         ae_layout.addWidget(plus_icon)
 
         ae_text = QLabel("Add new certification, award, or milestone...")
-        ae_text.setStyleSheet("font-size: 12px; color: #94a3b8;")
+        ae_text.setStyleSheet("font-size: 12px; color: #94a3b8; background: transparent;")
         ae_layout.addWidget(ae_text)
         ae_layout.addStretch()
 
         ae_btn_label = QLabel("Add Entry")
-        ae_btn_label.setStyleSheet("font-size: 11px; font-weight: 500; color: #64748b;")
+        ae_btn_label.setStyleSheet("font-size: 11px; font-weight: 500; color: #64748b; background: transparent;")
         ae_layout.addWidget(ae_btn_label)
 
         add_entry_card.mousePressEvent = lambda e: self._on_add_achievement_clicked()
@@ -622,12 +637,13 @@ class DashboardPage(QWidget):
         b_layout.setSpacing(10)
 
         info_icon = QLabel()
+        info_icon.setStyleSheet("background: transparent;")
         info_icon.setPixmap(get_svg_pixmap("info", "#94a3b8", 18))
         b_layout.addWidget(info_icon)
 
         info_text = QLabel("Navigate using the sidebar to manage your projects, professional profile, AI providers, and knowledge base.")
         info_text.setWordWrap(True)
-        info_text.setStyleSheet("font-size: 12px; color: #94a3b8;")
+        info_text.setStyleSheet("font-size: 12px; color: #94a3b8; background: transparent;")
         b_layout.addWidget(info_text, stretch=1)
 
         # Keyboard shortcuts
@@ -648,24 +664,24 @@ class DashboardPage(QWidget):
 
         kbd_layout.addWidget(make_kbd("Ctrl"))
         p1 = QLabel("+")
-        p1.setStyleSheet("color: #64748b; font-size: 11px;")
+        p1.setStyleSheet("color: #64748b; font-size: 11px; background: transparent;")
         kbd_layout.addWidget(p1)
         kbd_layout.addWidget(make_kbd("K"))
         t1 = QLabel("Palette")
-        t1.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        t1.setStyleSheet("color: #94a3b8; font-size: 11px; background: transparent;")
         kbd_layout.addWidget(t1)
 
         dot = QLabel("•")
-        dot.setStyleSheet("color: #475569; font-size: 12px; margin: 0 4px;")
+        dot.setStyleSheet("color: #475569; font-size: 12px; margin: 0 4px; background: transparent;")
         kbd_layout.addWidget(dot)
 
         kbd_layout.addWidget(make_kbd("Ctrl"))
         p2 = QLabel("+")
-        p2.setStyleSheet("color: #64748b; font-size: 11px;")
+        p2.setStyleSheet("color: #64748b; font-size: 11px; background: transparent;")
         kbd_layout.addWidget(p2)
         kbd_layout.addWidget(make_kbd("P"))
         t2 = QLabel("Switch")
-        t2.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        t2.setStyleSheet("color: #94a3b8; font-size: 11px; background: transparent;")
         kbd_layout.addWidget(t2)
 
         b_layout.addLayout(kbd_layout)
@@ -753,7 +769,7 @@ class DashboardPage(QWidget):
         icon_cycle = [("layers", "#38bdf8"), ("database", "#34d399"), ("sync", "#818cf8"), ("share", "#60a5fa"), ("analytics", "#f43f5e")]
         if not projects:
             empty_lbl = QLabel("No projects created yet. Click '+ New Project' to get started.")
-            empty_lbl.setStyleSheet("color: #64748b; font-size: 12px; padding: 20px; font-style: italic;")
+            empty_lbl.setStyleSheet("color: #64748b; font-size: 12px; padding: 20px; font-style: italic; background: transparent;")
             empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.proj_rows_layout.addWidget(empty_lbl)
         else:
@@ -773,7 +789,7 @@ class DashboardPage(QWidget):
 
         if not achievements:
             empty_ach = QLabel("No achievements recorded yet. Click below to add an entry.")
-            empty_ach.setStyleSheet("color: #64748b; font-size: 12px; padding: 20px; font-style: italic;")
+            empty_ach.setStyleSheet("color: #64748b; font-size: 12px; padding: 20px; font-style: italic; background: transparent;")
             empty_ach.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.ach_rows_layout.addWidget(empty_ach)
         else:
