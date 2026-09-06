@@ -12,6 +12,7 @@ class ProfilePage(QWidget):
         super().__init__()
         self.db = db_manager
         self.repo = ProfileRepository(self.db)
+        self._initial_profile_data = {}
         
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -211,15 +212,16 @@ class ProfilePage(QWidget):
                     Recent Posts: {[p['content'][:50] for p in posts]}
                     
                     Please provide a detailed, highly structured Markdown analysis of my profile. Use bolding, underlines, and lists to make it readable.
+                    DO NOT use any emojis in your response. Keep the tone strictly professional.
                     Include the following sections:
-                    ### 🎯 Executive Summary
-                    ### 💪 Key Strengths & Strongest Projects
-                    ### ⚠️ Skill Gaps & Weaknesses
-                    ### 📈 Posting Habits & Recommendations
-                    ### 🚀 Recommended Next Steps (What to build or document next)
+                    ### Executive Summary
+                    ### Key Strengths & Strongest Projects
+                    ### Skill Gaps & Weaknesses
+                    ### Posting Habits & Recommendations
+                    ### Recommended Next Steps
                     """
                     
-                    system_prompt = "You are an expert career coach and profile analyzer. Give a highly actionable, structured assessment formatted strictly in Markdown."
+                    system_prompt = "You are an expert career coach and profile analyzer. Give a highly actionable, structured assessment formatted strictly in Markdown. No emojis."
                     
                     res, metadata = self.router.route_request(
                         prompt=prompt,
@@ -256,6 +258,15 @@ class ProfilePage(QWidget):
         self.github_input.setText(profile.get("github_preferences") or "")
         self.content_input.setText(profile.get("content_preferences") or "")
         self.avoid_input.setText(profile.get("things_to_avoid") or "")
+        
+        self._initial_profile_data = {
+            "about": profile.get("about") or "",
+            "professional_goals": profile.get("professional_goals") or "",
+            "linkedin_preferences": profile.get("linkedin_preferences") or "",
+            "github_preferences": profile.get("github_preferences") or "",
+            "content_preferences": profile.get("content_preferences") or "",
+            "things_to_avoid": profile.get("things_to_avoid") or ""
+        }
         
         overview = profile.get("ai_overview")
         if overview:
@@ -385,6 +396,16 @@ class ProfilePage(QWidget):
             "content_preferences": self.content_input.toPlainText().strip(),
             "things_to_avoid": self.avoid_input.toPlainText().strip()
         }
+        
+        # Check if anything actually changed
+        has_changes = data != self._initial_profile_data
+        
         self.repo.update_profile(data)
-        QMessageBox.information(self, "Success", "Professional profile saved. Generating new AI Overview...")
-        self.run_intelligence()
+        
+        if has_changes:
+            # Update our initial tracking dict
+            self._initial_profile_data = data
+            QMessageBox.information(self, "Success", "Profile updated. Generating new AI Overview...")
+            self.run_intelligence()
+        else:
+            QMessageBox.information(self, "Success", "Profile saved. No text changes detected, skipping AI analysis.")
