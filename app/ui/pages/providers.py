@@ -6,7 +6,7 @@ from database.repository import ProviderRepository
 from providers import get_provider
 
 class ProviderTestWorker(QThread):
-    finished_signal = Signal(str, int, bool, str)
+    finished_signal = Signal(str, int, bool, str, list)
 
     def __init__(self, provider_name, api_key, slot, db_manager):
         super().__init__()
@@ -22,15 +22,11 @@ class ProviderTestWorker(QThread):
             is_valid = provider.test_key()
             if is_valid:
                 models = provider.discover_models()
-                if models:
-                    from database.repository import ProviderRepository
-                    repo = ProviderRepository(self.db_manager)
-                    repo.save_models(self.provider_name, models)
-                self.finished_signal.emit(self.provider_name, self.slot, True, "Connected & Verified")
+                self.finished_signal.emit(self.provider_name, self.slot, True, "Connected & Verified", models or [])
             else:
-                self.finished_signal.emit(self.provider_name, self.slot, False, provider.get_status())
+                self.finished_signal.emit(self.provider_name, self.slot, False, provider.get_status(), [])
         except Exception as e:
-            self.finished_signal.emit(self.provider_name, self.slot, False, f"Error: {str(e)}")
+            self.finished_signal.emit(self.provider_name, self.slot, False, f"Error: {str(e)}", [])
         finally:
             if provider:
                 provider.close()
@@ -52,25 +48,13 @@ class ProviderCard(QGroupBox):
             slot_widget = self.create_slot_ui(slot, slot_data)
             main_layout.addWidget(slot_widget)
         
-        models = self.models_callback(self.provider_data["name"])
-        if models:
-            display_models = models[:8]
-            models_text = ", ".join([m["name"] for m in display_models])
-            if len(models) > 8:
-                models_text += f", ... and {len(models) - 8} more"
-                
-            models_lbl = QLabel(f"Discovered Models ({len(models)}): {models_text}")
-            models_lbl.setWordWrap(True)
-            models_lbl.setStyleSheet("color: #555; font-size: 10px;")
-            main_layout.addWidget(models_lbl)
+    def manage_models(self, key_id, slot_name):
+        if not key_id:
+            QMessageBox.warning(self, "Unsaved Key", "Please Test & Save this API key first before managing its models.")
+            return
             
-            manage_btn = QPushButton("Manage Models & Limits")
-            manage_btn.clicked.connect(self.manage_models)
-            main_layout.addWidget(manage_btn)
-            
-    def manage_models(self):
         from app.ui.components.model_dialog import ModelManagementDialog
-        dlg = ModelManagementDialog(self.provider_data["name"], self.db, self)
+        dlg = ModelManagementDialog(self.provider_data["name"], key_id, self.db, self)
         dlg.exec()
         
     def create_slot_ui(self, slot, slot_data):
@@ -129,6 +113,26 @@ class ProviderCard(QGroupBox):
             btn_layout.addWidget(remove_btn)
             
         layout.addLayout(btn_layout)
+        
+        # Add Per-Key Models UI
+        key_id = slot_data.get("id")
+        if key_id:
+            models = self.models_callback(key_id)
+            if models:
+                display_models = models[:8]
+                models_text = ", ".join([m["name"] for m in display_models])
+                if len(models) > 8:
+                    models_text += f", ... and {len(models) - 8} more"
+                    
+                models_lbl = QLabel(f"Models ({len(models)}): {models_text}")
+                models_lbl.setWordWrap(True)
+                models_lbl.setStyleSheet("color: #555; font-size: 10px;")
+                layout.addWidget(models_lbl)
+                
+            manage_btn = QPushButton("Manage Models & Limits")
+            manage_btn.clicked.connect(lambda _, kid=key_id, s=slot: self.manage_models(kid, s))
+            layout.addWidget(manage_btn)
+            
         return box
         
     def on_test_clicked(self, slot):
@@ -240,10 +244,10 @@ class AIProvidersPage(QWidget):
     def run_test(self, provider_name, api_key, slot, disp_name, enabled, card_widget):
         worker = ProviderTestWorker(provider_name, api_key, slot, self.db)
         self.active_threads.add(worker)
-        worker.finished_signal.connect(lambda name, slt, succ, msg: self.on_test_finished(name, api_key, slt, disp_name, enabled, succ, msg, worker))
+        worker.finished_signal.connect(lambda name, slt, succ, msg, models: self.on_test_finished(name, api_key, slt, disp_name, enabled, succ, msg, models, worker))
         worker.start()
         
-    def on_test_finished(self, provider_name, api_key, slot, disp_name, enabled, success, status_msg, worker):
+    def on_test_finished(self, provider_name, api_key, slot, disp_name, enabled, success, status_msg, models, worker):
         if worker in self.active_threads:
             self.active_threads.remove(worker)
             worker.deleteLater()
@@ -257,7 +261,18 @@ class AIProvidersPage(QWidget):
             
             if success:
                 card.slots[slot]["status_label"].setStyleSheet("color: green; font-weight: bold;")
+                
+                # Save key and get the generated key ID
                 self.repo.save_api_key(provider_name, api_key, status_msg, slot, disp_name, enabled)
+                
+                # Fetch the newly saved key_id
+                keys = self.repo.get_providers()
+                p_keys = next((p["keys"] for p in keys if p["name"] == provider_name), {})
+                key_id = p_keys.get(slot, {}).get("id")
+                
+                if key_id and models:
+                    self.repo.save_models(provider_name, key_id, models)
+                    
                 QMessageBox.information(self, "Success", f"Successfully authenticated with {provider_name}.")
             else:
                 card.slots[slot]["status_label"].setStyleSheet("color: red; font-weight: bold;")

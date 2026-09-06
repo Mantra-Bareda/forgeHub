@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS api_keys_metadata (
 CREATE TABLE IF NOT EXISTS models (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     provider_id INTEGER NOT NULL,
+    key_id INTEGER,
     model_id TEXT NOT NULL,
     name TEXT,
     context_size INTEGER,

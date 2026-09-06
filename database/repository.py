@@ -275,9 +275,11 @@ class ProviderRepository(Repository):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT p.name as provider, m.model_id as model, m.name as display_name, m.rpm_limit, m.rpd_limit
+                SELECT p.name || ' (' || k.display_name || ')' as provider, 
+                       m.model_id as model, m.name as display_name, m.rpm_limit, m.rpd_limit
                 FROM models m
                 JOIN ai_providers p ON m.provider_id = p.id
+                JOIN api_keys_metadata k ON m.key_id = k.id
                 WHERE m.is_enabled = 1
             """)
             models_dict = {}
@@ -304,12 +306,16 @@ class ProviderRepository(Repository):
                 GROUP BY provider, model
             """)
             for row in cursor.fetchall():
-                p = row['provider']
+                p_base = row['provider']
                 m = row['model']
-                if p in models_dict and m in models_dict[p]:
-                    models_dict[p][m]["total_requests"] = row["total_requests"]
-                    models_dict[p][m]["req_last_min"] = row["req_last_min"] or 0
-                    models_dict[p][m]["req_last_day"] = row["req_last_day"] or 0
+                
+                # Match against all keys for this provider
+                for prov_key in models_dict.keys():
+                    if prov_key.startswith(f"{p_base} ("):
+                        if m in models_dict[prov_key]:
+                            models_dict[prov_key][m]["total_requests"] = row["total_requests"]
+                            models_dict[prov_key][m]["req_last_min"] = row["req_last_min"] or 0
+                            models_dict[prov_key][m]["req_last_day"] = row["req_last_day"] or 0
                     
             return models_dict
 
@@ -417,7 +423,7 @@ class ProviderRepository(Repository):
                 except Exception:
                     pass
 
-    def save_models(self, provider_name, models_list):
+    def save_models(self, provider_name, key_id, models_list):
         # Known good models that should default to enabled (others default to disabled)
         good_models = {
             "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-pro-exp", "gemini-2.5-pro", 
@@ -439,8 +445,8 @@ class ProviderRepository(Repository):
                 # Determine default enablement
                 is_enabled = 1 if any(g in m_id.lower() for g in good_models) else 0
                 
-                # Check if model exists
-                cursor.execute("SELECT id FROM models WHERE provider_id = ? AND model_id = ?", (p_id, m_id))
+                # Check if model exists for this specific key
+                cursor.execute("SELECT id FROM models WHERE key_id = ? AND model_id = ?", (key_id, m_id))
                 existing = cursor.fetchone()
                 
                 if existing:
@@ -450,27 +456,26 @@ class ProviderRepository(Repository):
                     """, (m["name"], m["context_size"], m["category"], m["availability"], existing["id"]))
                 else:
                     cursor.execute("""
-                        INSERT INTO models (provider_id, model_id, name, context_size, category, availability, is_enabled)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (p_id, m_id, m["name"], m["context_size"], m["category"], m["availability"], is_enabled))
+                        INSERT INTO models (provider_id, key_id, model_id, name, context_size, category, availability, is_enabled)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (p_id, key_id, m_id, m["name"], m["context_size"], m["category"], m["availability"], is_enabled))
             
             conn.commit()
             
-    def get_models(self, provider_name=None, include_disabled=False):
+    def get_models(self, key_id=None, include_disabled=False):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             
             base_query = """
                 SELECT m.* FROM models m
-                JOIN ai_providers p ON m.provider_id = p.id
             """
             
             conditions = []
             params = []
             
-            if provider_name:
-                conditions.append("p.name = ?")
-                params.append(provider_name)
+            if key_id:
+                conditions.append("m.key_id = ?")
+                params.append(key_id)
                 
             if not include_disabled:
                 conditions.append("m.is_enabled = 1")
@@ -489,8 +494,8 @@ class ProviderRepository(Repository):
                 SELECT m.model_id, m.name, m.context_size, m.category, m.rpm_limit, m.rpd_limit,
                        p.name as provider_name, k.api_key, k.id as key_id 
                 FROM models m
-                JOIN ai_providers p ON m.provider_id = p.id
-                JOIN api_keys_metadata k ON p.id = k.provider_id
+                JOIN api_keys_metadata k ON m.key_id = k.id
+                JOIN ai_providers p ON k.provider_id = p.id
                 WHERE k.enabled = 1 AND k.status NOT IN ('Invalid Key', 'Not Configured') AND m.is_enabled = 1
             """
             params = []

@@ -4,11 +4,12 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
 from PySide6.QtCore import Qt
 
 class ModelManagementDialog(QDialog):
-    def __init__(self, provider_name, db_manager, parent=None):
+    def __init__(self, provider_name, key_id, db_manager, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Manage Models: {provider_name}")
+        self.setWindowTitle(f"Manage Models: {provider_name} (Key #{key_id})")
         self.setMinimumSize(700, 500)
         self.provider_name = provider_name
+        self.key_id = key_id
         self.db = db_manager
         
         layout = QVBoxLayout(self)
@@ -40,10 +41,9 @@ class ModelManagementDialog(QDialog):
             cursor.execute("""
                 SELECT m.id, m.model_id, m.name, m.category, m.is_enabled, m.rpm_limit, m.rpd_limit
                 FROM models m
-                JOIN ai_providers p ON m.provider_id = p.id
-                WHERE p.name = ?
+                WHERE m.key_id = ?
                 ORDER BY m.category, m.name
-            """, (self.provider_name,))
+            """, (self.key_id,))
             
             for row in cursor.fetchall():
                 item = QTreeWidgetItem([
