@@ -1,6 +1,41 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, QMessageBox, QLineEdit, QScrollArea
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, QMessageBox, QLineEdit, QScrollArea, QDialog, QHBoxLayout, QListWidget, QListWidgetItem, QMenu
 from PySide6.QtCore import Qt
 from database.repository import ProfileRepository
+
+class LinkedInPostDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add LinkedIn Post")
+        self.setMinimumWidth(400)
+        
+        layout = QVBoxLayout(self)
+        
+        layout.addWidget(QLabel("Post Content (Text):"))
+        self.content_input = QTextEdit()
+        self.content_input.setMinimumHeight(100)
+        layout.addWidget(self.content_input)
+        
+        layout.addWidget(QLabel("Media Description (Describe the image, video, or link attached):"))
+        self.media_input = QTextEdit()
+        self.media_input.setMinimumHeight(60)
+        self.media_input.setPlaceholderText("e.g., A screenshot of my dashboard, or A link to my github repo")
+        layout.addWidget(self.media_input)
+        
+        buttons = QHBoxLayout()
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(self.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        
+        buttons.addWidget(save_btn)
+        buttons.addWidget(cancel_btn)
+        layout.addLayout(buttons)
+
+    def get_data(self):
+        return {
+            "content": self.content_input.toPlainText().strip(),
+            "media_description": self.media_input.toPlainText().strip()
+        }
 
 class LinkedInPage(QWidget):
     def __init__(self, db_manager):
@@ -35,11 +70,19 @@ class LinkedInPage(QWidget):
         self.layout.addWidget(self.about_input)
         
         # Posts
-        self.layout.addWidget(QLabel("<b>Recent Posts / Activity Summary:</b>"))
-        self.posts_input = QTextEdit()
-        self.posts_input.setMaximumHeight(100)
-        self.posts_input.setPlaceholderText("List your LinkedIn specific posts here...")
-        self.layout.addWidget(self.posts_input)
+        post_header = QHBoxLayout()
+        post_header.addWidget(QLabel("<b>LinkedIn Posts (Already published):</b>"))
+        add_post_btn = QPushButton("+ Add Post")
+        add_post_btn.clicked.connect(self.add_post)
+        post_header.addStretch()
+        post_header.addWidget(add_post_btn)
+        self.layout.addLayout(post_header)
+        
+        self.post_list = QListWidget()
+        self.post_list.setMaximumHeight(150)
+        self.post_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.post_list.customContextMenuRequested.connect(self.post_context_menu)
+        self.layout.addWidget(self.post_list)
         
         # Certificates
         self.layout.addWidget(QLabel("<b>Certificates Uploaded to LinkedIn:</b>"))
@@ -79,18 +122,44 @@ class LinkedInPage(QWidget):
         self.username_input.setText(data.get("username") or "")
         self.bio_input.setText(data.get("bio") or "")
         self.about_input.setText(data.get("about") or "")
-        self.posts_input.setText(data.get("posts") or "")
         self.certs_input.setText(data.get("certificates") or "")
         self.projects_input.setText(data.get("projects") or "")
         self.languages_input.setText(data.get("languages") or "")
         self.skills_input.setText(data.get("skills") or "")
+        self.load_posts()
         
+    def load_posts(self):
+        self.post_list.clear()
+        for post in self.repo.get_linkedin_posts():
+            content = str(post.get('content', ''))[:50]
+            item = QListWidgetItem(f"[{post.get('created_at', '')[:10]}] {content}...")
+            item.setData(Qt.ItemDataRole.UserRole, post["id"])
+            self.post_list.addItem(item)
+            
+    def add_post(self):
+        dialog = LinkedInPostDialog(self)
+        if dialog.exec():
+            data = dialog.get_data()
+            if data["content"]:
+                self.repo.add_linkedin_post(data["content"], data["media_description"])
+                self.load_posts()
+
+    def post_context_menu(self, position):
+        from PySide6.QtWidgets import QMenu
+        item = self.post_list.itemAt(position)
+        if not item: return
+        menu = QMenu()
+        delete_action = menu.addAction("Delete Post")
+        action = menu.exec(self.post_list.mapToGlobal(position))
+        if action == delete_action:
+            self.repo.delete_linkedin_post(item.data(Qt.ItemDataRole.UserRole))
+            self.load_posts()
+
     def save_preferences(self):
         data = {
             "username": self.username_input.text().strip(),
             "bio": self.bio_input.text().strip(),
             "about": self.about_input.toPlainText().strip(),
-            "posts": self.posts_input.toPlainText().strip(),
             "certificates": self.certs_input.toPlainText().strip(),
             "projects": self.projects_input.toPlainText().strip(),
             "languages": self.languages_input.text().strip(),

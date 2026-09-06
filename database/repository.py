@@ -207,6 +207,27 @@ class ProfileRepository(Repository):
             conn.execute(query, tuple(data.values()))
             conn.commit()
 
+    def add_linkedin_post(self, content, media_description):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO linkedin_posts (content, media_description)
+                VALUES (?, ?)
+            """, (content, media_description))
+            conn.commit()
+
+    def get_linkedin_posts(self):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM linkedin_posts ORDER BY created_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def delete_linkedin_post(self, post_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM linkedin_posts WHERE id = ?", (post_id,))
+            conn.commit()
+
     def get_github_data(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

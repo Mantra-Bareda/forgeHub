@@ -105,6 +105,7 @@ class MemoryExtractor:
         achievements = prof_repo.get_achievements()
         posts = post_repo.get_posts()
         linkedin = prof_repo.get_linkedin_data()
+        linkedin_posts = prof_repo.get_linkedin_posts()
         github = prof_repo.get_github_data()
         
         context_str = f"""
@@ -133,7 +134,7 @@ class MemoryExtractor:
         - Languages: {linkedin.get('languages', '')}
         - Projects Listed: {linkedin.get('projects', '')}
         - Certificates: {linkedin.get('certificates', '')}
-        - Posts: {linkedin.get('posts', '')}
+        - Posts: {[p['content'][:50] + ' (Media: ' + p.get('media_description', '') + ')' for p in linkedin_posts]}
         
         GITHUB PROFILE:
         - Profile README: {github.get('profile_readme', '')}
