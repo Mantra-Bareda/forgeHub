@@ -53,32 +53,32 @@ class ProjectFormWidget(QWidget):
         self.layout = QVBoxLayout(content_widget)
         
         # Core details
-        self.layout.addWidget(QLabel("<b>Project Name:</b>"))
+        self.layout.addWidget(QLabel("<b>Project Name *</b>"))
         self.name_input = QLineEdit()
         self.layout.addWidget(self.name_input)
         
-        self.layout.addWidget(QLabel("<b>Description (Max 200 words):</b>"))
+        self.layout.addWidget(QLabel("<b>Description (Max 200 words) *</b>"))
         self.desc_input = QTextEdit()
         self.desc_input.setMaximumHeight(80)
         self.layout.addWidget(self.desc_input)
         
-        self.layout.addWidget(QLabel("<b>Tech Stack:</b>"))
+        self.layout.addWidget(QLabel("<b>Tech Stack *</b>"))
         self.tech_input = QLineEdit()
         self.tech_input.setPlaceholderText("e.g. Python, React, PySide6")
         self.layout.addWidget(self.tech_input)
         
-        self.layout.addWidget(QLabel("<b>Features:</b>"))
+        self.layout.addWidget(QLabel("<b>README File *</b>"))
+        self.readme_input = ReadmeDropArea()
+        self.layout.addWidget(self.readme_input)
+        
+        self.layout.addWidget(QLabel("<b>Features (Optional)</b>"))
         self.features_input = QTextEdit()
         self.features_input.setMaximumHeight(100)
         self.layout.addWidget(self.features_input)
         
-        self.layout.addWidget(QLabel("<b>Live App Link:</b>"))
+        self.layout.addWidget(QLabel("<b>Live App Link (Optional)</b>"))
         self.link_input = QLineEdit()
         self.layout.addWidget(self.link_input)
-        
-        self.layout.addWidget(QLabel("<b>README File:</b>"))
-        self.readme_input = ReadmeDropArea()
-        self.layout.addWidget(self.readme_input)
         
         # Integrations
         self.layout.addWidget(QLabel("<b>Integrations:</b>"))
@@ -96,8 +96,15 @@ class ProjectFormWidget(QWidget):
         self.linkedin_post_label.hide()
         self.linkedin_post_input.hide()
         
+        self.linkedin_media_label = QLabel("<b>LinkedIn Post Media Description (e.g. screenshot of homepage):</b>")
+        self.linkedin_media_input = QLineEdit()
+        self.linkedin_media_label.hide()
+        self.linkedin_media_input.hide()
+        
         self.layout.addWidget(self.linkedin_post_label)
         self.layout.addWidget(self.linkedin_post_input)
+        self.layout.addWidget(self.linkedin_media_label)
+        self.layout.addWidget(self.linkedin_media_input)
         
         self.layout.addStretch()
         scroll.setWidget(content_widget)
@@ -121,21 +128,27 @@ class ProjectFormWidget(QWidget):
     def toggle_linkedin_post(self, checked):
         self.linkedin_post_label.setVisible(checked)
         self.linkedin_post_input.setVisible(checked)
+        self.linkedin_media_label.setVisible(checked)
+        self.linkedin_media_input.setVisible(checked)
         
     def save_project(self):
         name = self.name_input.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Validation Error", "Project name is required.")
-            return
-            
         desc = self.desc_input.toPlainText().strip()
         tech = self.tech_input.text().strip()
+        readme = self.readme_input.toPlainText().strip()
+        
+        # Validation
+        if not name or not desc or not tech or not readme:
+            QMessageBox.warning(self, "Validation Error", "Please fill in all mandatory fields (Name, Description, Tech Stack, README).")
+            return
+            
         features = self.features_input.toPlainText().strip()
         link = self.link_input.text().strip()
-        readme = self.readme_input.toPlainText().strip()
+        
         github_added = self.github_cb.isChecked()
         linkedin_added = self.linkedin_cb.isChecked()
         linkedin_post = self.linkedin_post_input.toPlainText().strip() if linkedin_added else ""
+        linkedin_media = self.linkedin_media_input.text().strip() if linkedin_added else ""
         
         from database.repository import ProjectRepository, ProfileRepository
         proj_repo = ProjectRepository(self.db)
@@ -144,9 +157,8 @@ class ProjectFormWidget(QWidget):
         # Save project
         pid = proj_repo.create_project(name, desc, tech, "Planning", features, link, github_added, linkedin_added, linkedin_post)
         
-        # Save README if provided
-        if readme:
-            proj_repo.save_document(pid, "README.md", readme)
+        # Save README
+        proj_repo.save_document(pid, "README.md", readme)
             
         # Cross-pollinate to GitHub
         if github_added:
@@ -158,8 +170,9 @@ class ProjectFormWidget(QWidget):
         # Cross-pollinate to LinkedIn
         if linkedin_added:
             prof_repo.add_linkedin_project(name, desc)
-            if linkedin_post:
-                prof_repo.add_linkedin_post(linkedin_post, f"Media related to project: {name}")
+            if linkedin_post or linkedin_media:
+                media_desc = linkedin_media if linkedin_media else f"Media related to project: {name}"
+                prof_repo.add_linkedin_post(linkedin_post, media_desc)
                 
         # Trigger Memory Update
         from PySide6.QtCore import QThreadPool
@@ -181,4 +194,4 @@ class ProjectFormWidget(QWidget):
         self.github_cb.setChecked(False)
         self.linkedin_cb.setChecked(False)
         self.linkedin_post_input.clear()
-
+        self.linkedin_media_input.clear()
