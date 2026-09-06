@@ -11,12 +11,15 @@ class Repository:
 
 class ProjectRepository(Repository):
     # --- Projects ---
-    def create_project(self, name, description="", tech_stack="", status="Planning"):
+    def create_project(self, name, description="", tech_stack="", status="Planning", 
+                       features="", live_link="", github_added=False, linkedin_added=False, linkedin_post=""):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO projects (name, description, technology_stack, status) VALUES (?, ?, ?, ?)",
-                (name, description, tech_stack, status)
+                """INSERT INTO projects 
+                (name, description, technology_stack, status, features, live_link, github_added, linkedin_added, linkedin_post) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (name, description, tech_stack, status, features, live_link, github_added, linkedin_added, linkedin_post)
             )
             project_id = cursor.lastrowid
             self._log_activity(cursor, project_id, "Project Created", f"Project '{name}' was created.")

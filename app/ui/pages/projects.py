@@ -87,11 +87,8 @@ class ProjectListWidget(QWidget):
                 self.cards_layout.addWidget(card)
 
     def create_project(self):
-        dialog = ProjectDialog(self)
-        if dialog.exec():
-            data = dialog.get_data()
-            self.repo.create_project(data["name"], data["description"], data["tech_stack"], data["status"])
-            self.load_projects()
+        if hasattr(self, 'create_project_callback') and self.create_project_callback:
+            self.create_project_callback()
 
 
 class ProjectsPage(QWidget):
@@ -105,16 +102,27 @@ class ProjectsPage(QWidget):
         self.layout.addWidget(self.stacked_widget)
         
         self.list_widget = ProjectListWidget(self.db_manager, self.open_project)
+        self.list_widget.create_project_callback = self.show_form
+        
         self.detail_widget = ProjectDetailWidget(self.db_manager)
         
-        self.stacked_widget.addWidget(self.list_widget)
-        self.stacked_widget.addWidget(self.detail_widget)
+        from app.ui.pages.project_form import ProjectFormWidget
+        self.form_widget = ProjectFormWidget(self.db_manager)
+        
+        self.stacked_widget.addWidget(self.list_widget)   # Index 0
+        self.stacked_widget.addWidget(self.detail_widget) # Index 1
+        self.stacked_widget.addWidget(self.form_widget)   # Index 2
         
         self.detail_widget.back_requested.connect(self.show_list)
+        self.form_widget.cancelled.connect(self.show_list)
+        self.form_widget.saved.connect(self.show_list)
 
     def open_project(self, project_id):
         self.detail_widget.load_project(project_id)
         self.stacked_widget.setCurrentIndex(1)
+        
+    def show_form(self):
+        self.stacked_widget.setCurrentIndex(2)
         
     def show_list(self):
         self.list_widget.load_projects()

@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     technology_stack TEXT,
     status TEXT DEFAULT 'Planning',
+    features TEXT,
+    live_link TEXT,
+    github_added BOOLEAN DEFAULT 0,
+    linkedin_added BOOLEAN DEFAULT 0,
+    linkedin_post TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
