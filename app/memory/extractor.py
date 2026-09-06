@@ -85,3 +85,84 @@ class MemoryExtractor:
                     
         except Exception as e:
             logger.error(f"Failed to extract/update memories: {str(e)}")
+
+    def sync_from_profile(self):
+        from database.repository import ProfileRepository, ProjectRepository, PostRepository
+        prof_repo = ProfileRepository(self.memory_repo.db)
+        proj_repo = ProjectRepository(self.memory_repo.db)
+        post_repo = PostRepository(self.memory_repo.db)
+        
+        # 1. Clear old auto-synced memories
+        with self.memory_repo.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM memories WHERE category = 'Profile Sync'")
+            conn.commit()
+            
+        # 2. Gather data
+        profile = prof_repo.get_profile()
+        skills = [s['name'] for s in prof_repo.get_skills()]
+        projects = proj_repo.get_projects()
+        achievements = prof_repo.get_achievements()
+        posts = post_repo.get_posts()
+        
+        context_str = f"""
+        PROFILE AI OVERVIEW:
+        {profile.get('ai_overview', 'None')}
+        
+        ABOUT:
+        {profile.get('about', 'None')}
+        
+        GOALS:
+        {profile.get('professional_goals', 'None')}
+        
+        SKILLS:
+        {skills}
+        
+        PROJECTS:
+        {[p['name'] + ' (' + p['status'] + '): ' + p.get('description', '') for p in projects]}
+        
+        RECENT POSTS:
+        {[p['content'][:100] for p in posts]}
+        """
+        
+        system_prompt = """
+        You are the Profile Sync Core. Extract long-term, factual memories about the user from their profile data.
+        These memories will be injected into their AI context. Focus on concrete facts (what they build, their main skills, their actual goals, their preferences).
+        
+        Return ONLY valid JSON in the following format (an array of actions):
+        [
+            {"action": "ADD", "category": "Profile Sync", "content": "User is building a React Native app", "importance": "High"},
+            {"action": "ADD", "category": "Profile Sync", "content": "User's goal is to become a Staff Engineer", "importance": "High"}
+        ]
+        
+        Rules:
+        1. Action must always be "ADD" and category MUST be "Profile Sync".
+        2. Keep the content extremely concise and factual.
+        3. Do not include more than 15 highly important facts. Group them if necessary.
+        """
+        
+        try:
+            result, metadata = self.router.route_request(
+                prompt=context_str,
+                category="Reasoning", 
+                system_prompt=system_prompt,
+                max_tokens=2048
+            )
+            
+            match = re.search(r'\[.*\]', result, re.DOTALL)
+            if not match: return
+                
+            clean_resp = match.group(0).strip()
+            if not clean_resp: return
+                
+            actions = json.loads(clean_resp)
+            if not isinstance(actions, list): return
+                
+            for act in actions:
+                if not isinstance(act, dict): continue
+                if act.get("action", "").upper() == "ADD" and act.get("content"):
+                    self.memory_repo.add_memory("Profile Sync", act.get("content"), act.get("importance", "Medium"))
+                    
+        except Exception as e:
+            logger.error(f"Failed to sync profile memories: {str(e)}")
+            raise e

@@ -29,6 +29,20 @@ class ExtractorWorker(QRunnable):
         except Exception as e:
             self.signals.error.emit(str(e))
 
+class ProfileSyncWorker(QRunnable):
+    def __init__(self, db_manager):
+        super().__init__()
+        self.db = db_manager
+        self.signals = ExtractorSignals()
+        
+    def run(self):
+        try:
+            extractor = MemoryExtractor(self.db)
+            extractor.sync_from_profile()
+            self.signals.finished.emit()
+        except Exception as e:
+            self.signals.error.emit(str(e))
+
 class MemoryPage(QWidget):
     def __init__(self, db_manager):
         super().__init__()
@@ -50,6 +64,12 @@ class MemoryPage(QWidget):
         
         header_layout.addWidget(header)
         header_layout.addStretch()
+        
+        self.sync_profile_btn = QPushButton("Sync from Profile & Projects")
+        self.sync_profile_btn.setStyleSheet("background-color: #2196F3; color: white; font-weight: bold;")
+        self.sync_profile_btn.clicked.connect(self.trigger_profile_sync)
+        header_layout.addWidget(self.sync_profile_btn)
+        
         header_layout.addWidget(self.extract_btn)
         self.layout.addLayout(header_layout)
         
@@ -72,7 +92,7 @@ class MemoryPage(QWidget):
         self.tabs = QTabWidget()
         self.layout.addWidget(self.tabs)
         
-        self.categories = ["Profile", "Projects", "Achievements", "Conversations", "Other"]
+        self.categories = ["Profile", "Profile Sync", "Projects", "Achievements", "Conversations", "Other"]
         self.lists = {}
         for cat in self.categories:
             list_w = QListWidget()
@@ -136,6 +156,25 @@ class MemoryPage(QWidget):
         self.extract_btn.setEnabled(True)
         self.extract_btn.setText("Extract Memories from Recent Chat")
         QMessageBox.warning(self, "Extraction Failed", f"Could not extract memories: {err}")
+        
+    def trigger_profile_sync(self):
+        self.sync_profile_btn.setEnabled(False)
+        self.sync_profile_btn.setText("Syncing...")
+        
+        worker = ProfileSyncWorker(self.db_manager)
+        worker.signals.finished.connect(self.on_profile_sync_done)
+        worker.signals.error.connect(self.on_profile_sync_error)
+        self.thread_pool.start(worker)
+        
+    def on_profile_sync_done(self):
+        self.sync_profile_btn.setEnabled(True)
+        self.sync_profile_btn.setText("Sync from Profile & Projects")
+        self.load_memories()
+        
+    def on_profile_sync_error(self, err):
+        self.sync_profile_btn.setEnabled(True)
+        self.sync_profile_btn.setText("Sync from Profile & Projects")
+        QMessageBox.warning(self, "Sync Failed", f"Could not sync from profile: {err}")
         
     def show_context_menu(self, position):
         from PySide6.QtWidgets import QMenu, QInputDialog

@@ -138,11 +138,6 @@ class ProfilePage(QWidget):
         intelligence_layout = QVBoxLayout()
         intelligence_layout.addWidget(QLabel("<b>Profile Intelligence (AI Analysis):</b>"))
         
-        self.intelligence_btn = QPushButton("Generate AI Profile Analysis")
-        self.intelligence_btn.setStyleSheet("background-color: #9C27B0; color: white; font-weight: bold; padding: 10px;")
-        self.intelligence_btn.clicked.connect(self.run_intelligence)
-        intelligence_layout.addWidget(self.intelligence_btn)
-        
         self.intelligence_output = QTextEdit()
         self.intelligence_output.setPlaceholderText("AI will analyze your projects, skills, and history to find weaknesses, repetition, and recommend what to build or post next...")
         self.intelligence_output.setMinimumHeight(150)
@@ -173,8 +168,6 @@ class ProfilePage(QWidget):
         self.load_data()
 
     def run_intelligence(self):
-        self.intelligence_btn.setEnabled(False)
-        self.intelligence_btn.setText("Analyzing Profile...")
         self.intelligence_output.setPlainText("Compiling your skills, projects, and history for AI analysis...")
         
         from PySide6.QtCore import QRunnable, QThreadPool, QObject, Signal
@@ -239,14 +232,10 @@ class ProfilePage(QWidget):
         QThreadPool.globalInstance().start(worker)
         
     def on_intel_done(self, result):
-        self.intelligence_btn.setEnabled(True)
-        self.intelligence_btn.setText("Generate AI Profile Analysis")
         self.intelligence_output.setMarkdown(result)
         self.repo.save_overview(result)
         
     def on_intel_error(self, err):
-        self.intelligence_btn.setEnabled(True)
-        self.intelligence_btn.setText("Generate AI Profile Analysis")
         self.intelligence_output.setPlainText(f"Error generating analysis: {err}")
 
     def load_data(self):
@@ -323,6 +312,7 @@ class ProfilePage(QWidget):
             self.repo.add_skill(name, level)
             self.new_skill_input.clear()
             self.load_skills()
+            self.run_intelligence()
             
     def skill_context_menu(self, position):
         item = self.skills_list.itemAt(position)
@@ -335,6 +325,7 @@ class ProfilePage(QWidget):
         if action == delete_action:
             self.repo.delete_skill(item.data(Qt.ItemDataRole.UserRole))
             self.load_skills()
+            self.run_intelligence()
 
     def load_achievements(self):
         self.achievements_list.clear()
@@ -353,6 +344,7 @@ class ProfilePage(QWidget):
             data = dialog.get_data()
             self.repo.add_achievement(data["title"], data["description"], data["date"], data["type"])
             self.load_achievements()
+            self.run_intelligence()
 
     def achievement_context_menu(self, position):
         item = self.achievements_list.itemAt(position)
@@ -365,6 +357,7 @@ class ProfilePage(QWidget):
         if action == delete_action:
             self.repo.delete_achievement(item.data(Qt.ItemDataRole.UserRole))
             self.load_achievements()
+            self.run_intelligence()
 
 
 
@@ -375,6 +368,7 @@ class ProfilePage(QWidget):
             repo = PostRepository(self.db)
             repo.add_post(data["platform"], data["content"])
             self.load_posts()
+            self.run_intelligence()
 
     def post_context_menu(self, position):
         item = self.post_list.itemAt(position)
@@ -386,6 +380,7 @@ class ProfilePage(QWidget):
             repo = PostRepository(self.db)
             repo.delete_post(item.data(Qt.ItemDataRole.UserRole))
             self.load_posts()
+            self.run_intelligence()
 
     def save_profile(self):
         data = {
