@@ -1,9 +1,52 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QPushButton, QTextEdit, 
-                                 QScrollArea, QFrame, QMessageBox)
-from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QTimer
+                                 QScrollArea, QFrame, QMessageBox, QSizePolicy)
+from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QTimer, QPropertyAnimation, QEasingCurve, QAbstractAnimation
 from database.repository import ChatRepository
 from app.ai import ModelRouter
+
+class InsightsPanel(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.expanded = False
+        
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        
+        # Header button
+        self.toggle_btn = QPushButton("View AI Insights ✨")
+        self.toggle_btn.setStyleSheet("font-weight: bold; padding: 5px; background-color: #673AB7; color: white; border-radius: 5px;")
+        self.toggle_btn.clicked.connect(self.toggle)
+        self.layout.addWidget(self.toggle_btn)
+        
+        # Content box
+        self.content_box = QTextEdit()
+        self.content_box.setReadOnly(True)
+        self.content_box.setStyleSheet("background-color: #2b2b2b; color: #ddd; border: 1px solid #673AB7; padding: 10px;")
+        self.content_box.setMaximumHeight(0) # Initially rolled up
+        self.content_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.layout.addWidget(self.content_box)
+        
+        self.animation = QPropertyAnimation(self.content_box, b"maximumHeight")
+        self.animation.setDuration(400)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
+
+    def set_content(self, text):
+        self.content_box.setMarkdown(text)
+
+    def toggle(self):
+        self.expanded = not self.expanded
+        if self.expanded:
+            self.toggle_btn.setText("Close AI Insights ✨")
+            self.animation.setStartValue(0)
+            self.animation.setEndValue(300) # Half screen roughly
+            self.animation.start()
+        else:
+            self.toggle_btn.setText("View AI Insights ✨")
+            self.animation.setStartValue(self.content_box.height())
+            self.animation.setEndValue(0)
+            self.animation.start()
 
 class ChatWorkerSignals(QObject):
     finished = Signal(str)
@@ -106,6 +149,15 @@ class AIChatPage(QWidget):
         
         self.layout.addWidget(self.scroll_area, stretch=1)
         
+        # Insights Panel
+        insights_layout = QHBoxLayout()
+        insights_layout.addStretch()
+        self.insights_panel = InsightsPanel()
+        self.insights_panel.setMinimumWidth(250)
+        self.insights_panel.setMaximumWidth(400)
+        insights_layout.addWidget(self.insights_panel)
+        self.layout.addLayout(insights_layout)
+        
         # Input Area
         input_layout = QHBoxLayout()
         self.input_box = QTextEdit()
@@ -145,7 +197,30 @@ class AIChatPage(QWidget):
         self.chat_context = new_context
         self.load_history()
 
+    def load_insights(self):
+        from database.repository import ProfileRepository
+        repo = ProfileRepository(self.db)
+        insights = ""
+        if self.chat_context == "linkedin":
+            data = repo.get_linkedin_data()
+            insights = data.get("ai_insights")
+        elif self.chat_context == "github":
+            data = repo.get_github_data()
+            insights = data.get("ai_insights")
+            
+        if insights:
+            self.insights_panel.set_content(insights)
+            self.insights_panel.show()
+        else:
+            self.insights_panel.set_content("*No insights yet. Save your profile to generate them.*")
+            # We don't hide the panel, just show the placeholder. Or we can hide it for general contexts.
+            if self.chat_context in ["linkedin", "github"]:
+                self.insights_panel.show()
+            else:
+                self.insights_panel.hide()
+
     def load_history(self):
+        self.load_insights()
         # Clear layout
         while self.history_layout.count():
             child = self.history_layout.takeAt(0)

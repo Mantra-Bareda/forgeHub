@@ -97,4 +97,19 @@ class GitHubPage(QWidget):
             "projects_summary": self.projects_input.toPlainText().strip()
         }
         self.repo.update_github_data(data)
-        QMessageBox.information(self, "Success", "GitHub profile data saved.")
+        
+        # Launch background tasks
+        from PySide6.QtCore import QThreadPool
+        from app.ui.pages.memory import ProfileSyncWorker
+        from app.ai.insights_worker import BackgroundInsightsWorker
+        from app.ai import ModelRouter
+        
+        pool = QThreadPool.globalInstance()
+        pool.start(ProfileSyncWorker(self.repo.db))
+        
+        router = ModelRouter(self.repo.db)
+        insights_worker = BackgroundInsightsWorker(self.repo.db, router, "github")
+        insights_worker.signals.finished.connect(self.chat_page.load_insights)
+        pool.start(insights_worker)
+        
+        QMessageBox.information(self, "Success", "GitHub profile data saved. AI is updating your memory and insights in the background!")

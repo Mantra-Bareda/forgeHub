@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS projects (
     technology_stack TEXT,
     status TEXT DEFAULT 'Planning',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS project_documents (
     project_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     content TEXT,
+    ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
@@ -46,6 +48,7 @@ CREATE TABLE IF NOT EXISTS profile (
     linkedin_preferences TEXT,
     things_to_avoid TEXT,
     ai_overview TEXT,
+    ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -182,6 +185,7 @@ CREATE TABLE IF NOT EXISTS linkedin_data (
     projects TEXT,
     languages TEXT,
     skills TEXT,
+    ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -222,6 +226,7 @@ CREATE TABLE IF NOT EXISTS github_data (
     username TEXT,
     profile_readme TEXT,
     projects_summary TEXT,
+    ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
