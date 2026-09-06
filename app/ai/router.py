@@ -56,15 +56,21 @@ class ModelRouter:
             category = self.detect_task_category(prompt)
 
         selection_reason = "Best available model for category"
-        models = self.repo.get_available_models(category=category)
         
-        if not models:
+        # Fetch ALL models instead of just the category
+        all_models = self.repo.get_available_models()
+        if not all_models:
+            raise RoutingError("No available AI models or valid API keys found. Please configure them in AI Providers.")
+            
+        # Prioritize matching category first, then fallback to others
+        categorized_models = [m for m in all_models if m.get("category") == category]
+        other_models = [m for m in all_models if m.get("category") != category]
+        
+        models = categorized_models + other_models
+        
+        if not categorized_models:
             logger.warning(f"No models found for category '{category}'. Falling back to any available.")
             selection_reason = "Fallback to generic model (no category match)"
-            models = self.repo.get_available_models()
-            
-        if not models:
-            raise RoutingError("No available AI models or valid API keys found. Please configure them in AI Providers.")
         
         total_input = f"{system_prompt}\n{context}\n{prompt}"
         estimated_tokens = self._estimate_tokens(total_input) + max_tokens
@@ -73,6 +79,10 @@ class ModelRouter:
         attempt_count = 0
         
         for m in models:
+            # Dynamically update selection reason if we cross from categorized to generic
+            if categorized_models and m in other_models and selection_reason == "Best available model for category":
+                selection_reason = "Fallback to generic model (Categorized models failed/rate-limited)"
+                
             provider_name = m["provider_name"]
             
             if self._is_rate_limited(provider_name):
