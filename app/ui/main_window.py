@@ -57,8 +57,14 @@ class MainWindow(QMainWindow):
         self.providers_page.status_updated.connect(self.status_label.setText)
 
     def setup_pages(self):
-        self.stacked_widget.addWidget(DashboardPage(self.db_manager))
-        self.stacked_widget.addWidget(ProjectsPage(self.db_manager))
+        self.dashboard_page = DashboardPage(self.db_manager)
+        self.dashboard_page.navigate_requested.connect(self.sidebar.page_selected.emit)
+        self.dashboard_page.new_project_requested.connect(self.create_new_project)
+        self.dashboard_page.open_project_requested.connect(self.open_project_from_dashboard)
+        self.stacked_widget.addWidget(self.dashboard_page)
+
+        self.projects_page = ProjectsPage(self.db_manager)
+        self.stacked_widget.addWidget(self.projects_page)
         self.stacked_widget.addWidget(ProfilePage(self.db_manager))
         self.stacked_widget.addWidget(ContentPage(self.db_manager))
         self.stacked_widget.addWidget(MemoryPage(self.db_manager))
@@ -79,9 +85,11 @@ class MainWindow(QMainWindow):
     def create_new_project(self):
         # Switch to projects page
         self.sidebar.page_selected.emit(1)
-        # Assuming index 1 is ProjectsPage
-        projects_page = self.stacked_widget.widget(1)
         # Switch to list view if not already there
-        projects_page.show_list()
+        self.projects_page.show_list()
         # Trigger create project
-        projects_page.list_widget.create_project()
+        self.projects_page.list_widget.create_project()
+
+    def open_project_from_dashboard(self, project_id):
+        self.sidebar.page_selected.emit(1)
+        self.projects_page.open_project(project_id)
