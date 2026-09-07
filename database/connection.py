@@ -35,6 +35,20 @@ class DatabaseManager:
             dest.close()
             source.close()
 
+    def restore(self, backup_path):
+        """Restores the database from a backup using SQLite's native backup API."""
+        backup_path = Path(backup_path)
+        if not backup_path.exists():
+            raise FileNotFoundError(f"Backup file not found: {backup_path}")
+        source = sqlite3.connect(str(backup_path))
+        dest = sqlite3.connect(str(self.db_path))
+        try:
+            source.backup(dest)
+            logger.info(f"Database restored from {backup_path}")
+        finally:
+            dest.close()
+            source.close()
+
     def export_sql(self, dump_path):
         """Exports the entire database as a SQL dump file."""
         dump_path = Path(dump_path)
