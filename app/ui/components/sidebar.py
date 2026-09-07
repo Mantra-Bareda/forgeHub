@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-    QLabel, QFrame, QButtonGroup, QScrollArea
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QLabel, QFrame, QButtonGroup
 )
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QCursor
@@ -91,11 +91,11 @@ class Sidebar(QWidget):
         text_col.setSpacing(1)
 
         brand_name = QLabel("Forge Hub")
-        brand_name.setStyleSheet("font-size: 13px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.2px;")
+        brand_name.setStyleSheet("font-size: 13px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.2px; background: transparent; border: none;")
         text_col.addWidget(brand_name)
 
         version_lbl = QLabel("v2.4.0 • Workstation")
-        version_lbl.setStyleSheet("font-size: 11px; color: #64748b;")
+        version_lbl.setStyleSheet("font-size: 11px; color: #64748b; background: transparent; border: none;")
         text_col.addWidget(version_lbl)
 
         bb_layout.addLayout(text_col)
@@ -147,6 +147,7 @@ class Sidebar(QWidget):
 
         cloud_icon = QLabel()
         cloud_icon.setPixmap(get_svg_pixmap("cloud", "#94a3b8", 18))
+        cloud_icon.setStyleSheet("background: transparent; border: none;")
         fc_layout.addWidget(cloud_icon)
 
         ws_col = QVBoxLayout()
@@ -154,11 +155,11 @@ class Sidebar(QWidget):
         ws_col.setSpacing(1)
 
         ws_title = QLabel("Personal Workspace")
-        ws_title.setStyleSheet("font-size: 12px; font-weight: 500; color: #e2e8f0;")
+        ws_title.setStyleSheet("font-size: 12px; font-weight: 500; color: #e2e8f0; background: transparent; border: none;")
         ws_col.addWidget(ws_title)
 
         ws_sub = QLabel("Synced")
-        ws_sub.setStyleSheet("font-size: 11px; color: #94a3b8;")
+        ws_sub.setStyleSheet("font-size: 11px; color: #94a3b8; background: transparent; border: none;")
         ws_col.addWidget(ws_sub)
         fc_layout.addLayout(ws_col, 1)
 
