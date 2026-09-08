@@ -228,8 +228,8 @@ class ProfilePage(QWidget):
         self._opacity_effect.setOpacity(1.0)
         self.setGraphicsEffect(self._opacity_effect)
 
-        self._fade_anim = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._fade_anim.setDuration(280)
+        self._fade_anim = QPropertyAnimation(self._opacity_effect, b"opacity", self)
+        self._fade_anim.setDuration(240)
         self._fade_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
         from app.ai.router import ModelRouter
@@ -240,8 +240,7 @@ class ProfilePage(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self._fade_anim.stop()
-        self._opacity_effect.setOpacity(0.0)
-        self._fade_anim.setStartValue(0.0)
+        self._fade_anim.setStartValue(0.3)
         self._fade_anim.setEndValue(1.0)
         self._fade_anim.start()
 

@@ -4,9 +4,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QComboBox, QPushButton, QTextEdit, QTextBrowser, QMessageBox,
     QFrame, QSplitter, QFileDialog, QGraphicsOpacityEffect,
-    QButtonGroup, QStackedWidget
+    QButtonGroup, QStackedWidget, QScrollArea
 )
-from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QGuiApplication
 from app.ai.generator import ContentGenerator
 from app.ai.compiler import ContextCompiler
@@ -16,10 +16,11 @@ from app.ui.components.icons import get_svg_icon, get_svg_pixmap
 
 def setup_page_animation(widget: QWidget):
     effect = QGraphicsOpacityEffect(widget)
+    effect.setOpacity(1.0)
     widget.setGraphicsEffect(effect)
-    anim = QPropertyAnimation(effect, b"opacity")
-    anim.setDuration(280)
-    anim.setStartValue(0.0)
+    anim = QPropertyAnimation(effect, b"opacity", widget)
+    anim.setDuration(240)
+    anim.setStartValue(0.3)
     anim.setEndValue(1.0)
     anim.setEasingCurve(QEasingCurve.Type.OutCubic)
     anim.start()
@@ -136,17 +137,42 @@ class ContentPage(QWidget):
             }
         """)
 
-        # Left: Configuration Panel
+        # Left: Configuration Panel wrapped in scroll area
         left_panel = self.create_config_panel()
-        splitter.addWidget(left_panel)
+        scroll_config = QScrollArea()
+        scroll_config.setWidgetResizable(True)
+        scroll_config.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_config.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_config.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_config.setStyleSheet("""
+            QScrollArea {
+                background-color: #0e131f;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1e293b;
+                border-radius: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #2196f3;
+            }
+        """)
+        scroll_config.setWidget(left_panel)
+        scroll_config.setMinimumWidth(220)
+        splitter.addWidget(scroll_config)
 
         # Right: Editor & Live Workspace
         right_panel = self.create_editor_panel()
+        right_panel.setMinimumWidth(280)
         splitter.addWidget(right_panel)
 
-        splitter.setSizes([380, 820])
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([260, 540])
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 2)
 
         root_layout.addWidget(splitter, stretch=1)
 
@@ -155,6 +181,7 @@ class ContentPage(QWidget):
 
     def create_top_header(self) -> QFrame:
         banner = QFrame()
+        banner.setMinimumWidth(0)
         banner.setStyleSheet("""
             QFrame {
                 background-color: #0c0e14;
@@ -162,17 +189,17 @@ class ContentPage(QWidget):
             }
         """)
         layout = QHBoxLayout(banner)
-        layout.setContentsMargins(24, 14, 24, 14)
-        layout.setSpacing(16)
+        layout.setContentsMargins(16, 10, 16, 10)
+        layout.setSpacing(12)
 
         # Left Icon & Title
         icon_box = QFrame()
-        icon_box.setFixedSize(36, 36)
+        icon_box.setFixedSize(32, 32)
         icon_box.setStyleSheet("background-color: rgba(33, 150, 243, 0.15); border-radius: 8px;")
         ib_layout = QVBoxLayout(icon_box)
         ib_layout.setContentsMargins(0, 0, 0, 0)
         icon_lbl = QLabel()
-        icon_lbl.setPixmap(get_svg_pixmap("article", "#2196f3", 20))
+        icon_lbl.setPixmap(get_svg_pixmap("article", "#2196f3", 18))
         icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_lbl.setStyleSheet("background: transparent; border: none;")
         ib_layout.addWidget(icon_lbl)
@@ -184,7 +211,7 @@ class ContentPage(QWidget):
         top_row = QHBoxLayout()
         top_row.setSpacing(8)
         title_lbl = QLabel("Content Engine Workspace")
-        title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; background: transparent; border: none;")
+        title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; background: transparent; border: none;")
         top_row.addWidget(title_lbl)
 
         core_badge = QLabel("v2.4-Core")
@@ -204,12 +231,12 @@ class ContentPage(QWidget):
 
         sub_row = QHBoxLayout()
         sub_row.setSpacing(6)
-        sub_lbl = QLabel("Powered by Multi-Model Context Routing")
-        sub_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+        sub_lbl = QLabel("Multi-Model Routing")
+        sub_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
         sub_row.addWidget(sub_lbl)
 
         sep = QLabel("•")
-        sep.setStyleSheet("color: #475569; font-size: 12px; background: transparent; border: none;")
+        sep.setStyleSheet("color: #475569; font-size: 11px; background: transparent; border: none;")
         sub_row.addWidget(sep)
 
         dot = QFrame()
@@ -217,8 +244,8 @@ class ContentPage(QWidget):
         dot.setStyleSheet("background-color: #4edea3; border-radius: 3px;")
         sub_row.addWidget(dot)
 
-        synced_lbl = QLabel("Local Memory Graph Synchronized")
-        synced_lbl.setStyleSheet("color: #4edea3; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
+        synced_lbl = QLabel("Memory Synced")
+        synced_lbl.setStyleSheet("color: #4edea3; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none;")
         sub_row.addWidget(synced_lbl)
         sub_row.addStretch()
         title_box.addLayout(sub_row)
@@ -228,29 +255,29 @@ class ContentPage(QWidget):
 
         # Telemetry chips
         chip1 = QFrame()
-        chip1.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 6px; padding: 3px 10px;")
+        chip1.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 6px; padding: 2px 8px;")
         c1_lay = QHBoxLayout(chip1)
-        c1_lay.setContentsMargins(6, 3, 6, 3)
+        c1_lay.setContentsMargins(6, 2, 6, 2)
         c1_lay.setSpacing(6)
         i1 = QLabel()
-        i1.setPixmap(get_svg_pixmap("memory", "#2196f3", 14))
+        i1.setPixmap(get_svg_pixmap("memory", "#2196f3", 13))
         i1.setStyleSheet("background: transparent; border: none;")
         c1_lay.addWidget(i1)
-        t1 = QLabel("Context: Adaptive Cache")
+        t1 = QLabel("Adaptive Cache")
         t1.setStyleSheet("color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         c1_lay.addWidget(t1)
         layout.addWidget(chip1)
 
         chip2 = QFrame()
-        chip2.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 6px; padding: 3px 10px;")
+        chip2.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 6px; padding: 2px 8px;")
         c2_lay = QHBoxLayout(chip2)
-        c2_lay.setContentsMargins(6, 3, 6, 3)
+        c2_lay.setContentsMargins(6, 2, 6, 2)
         c2_lay.setSpacing(6)
         i2 = QLabel()
-        i2.setPixmap(get_svg_pixmap("bolt", "#4edea3", 14))
+        i2.setPixmap(get_svg_pixmap("bolt", "#4edea3", 13))
         i2.setStyleSheet("background: transparent; border: none;")
         c2_lay.addWidget(i2)
-        t2 = QLabel("Latency: <15ms (SQLite-WAL)")
+        t2 = QLabel("<15ms WAL")
         t2.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         c2_lay.addWidget(t2)
         layout.addWidget(chip2)
@@ -1163,3 +1190,6 @@ class ContentPage(QWidget):
                 QMessageBox.information(self, "Exported", f"Successfully saved to {path}")
             except Exception as e:
                 QMessageBox.critical(self, "Export Error", f"Failed to export: {str(e)}")
+
+    def minimumSizeHint(self):
+        return QSize(350, 250)

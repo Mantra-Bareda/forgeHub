@@ -361,17 +361,18 @@ class DashboardPage(QWidget):
         root_layout.addWidget(self.scroll_area)
 
         # Entrance motion effect (Opacity 0 -> 1 over 280ms)
-        self._opacity_effect = QGraphicsOpacityEffect(self.content_widget)
-        self.content_widget.setGraphicsEffect(self._opacity_effect)
-        self._entrance_anim = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._opacity_effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self._opacity_effect)
+        self._entrance_anim = QPropertyAnimation(self._opacity_effect, b"opacity", self)
         self._entrance_anim.setDuration(280)
+        self._entrance_anim.setStartValue(0.0)
+        self._entrance_anim.setEndValue(1.0)
         self._entrance_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
     def showEvent(self, event):
         super().showEvent(event)
         self.refresh_data()
         self._entrance_anim.stop()
-        self._opacity_effect.setOpacity(0.0)
         self._entrance_anim.setStartValue(0.0)
         self._entrance_anim.setEndValue(1.0)
         self._entrance_anim.start()

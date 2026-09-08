@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QFrame, QButtonGroup
+    QLabel, QFrame, QButtonGroup, QScrollArea
 )
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QCursor
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
 
@@ -51,7 +51,7 @@ class Sidebar(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.setFixedWidth(260)
+        self.setFixedWidth(240)
         self.setObjectName("sidebarWidget")
         self.setStyleSheet("""
             QWidget#sidebarWidget {
@@ -64,12 +64,12 @@ class Sidebar(QWidget):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 16, 12, 16)
+        layout.setContentsMargins(10, 14, 10, 14)
         layout.setSpacing(6)
 
         # 1. Header: Brand Logo + Version
         brand_box = QFrame()
-        brand_box.setStyleSheet("background: transparent; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 6px;")
+        brand_box.setStyleSheet("background: transparent; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 4px;")
         bb_layout = QHBoxLayout(brand_box)
         bb_layout.setContentsMargins(4, 0, 4, 4)
         bb_layout.setSpacing(10)
@@ -102,10 +102,39 @@ class Sidebar(QWidget):
         bb_layout.addStretch()
         layout.addWidget(brand_box)
 
-        # 2. Navigation List
+        # 2. Navigation List in Scroll Area
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
         self.buttons = []
+
+        nav_scroll = QScrollArea()
+        nav_scroll.setWidgetResizable(True)
+        nav_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        nav_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        nav_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #334155;
+                border-radius: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #60a5fa;
+            }
+        """)
+
+        nav_container = QWidget()
+        nav_container.setStyleSheet("background: transparent;")
+        nav_layout = QVBoxLayout(nav_container)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(4)
 
         nav_items = [
             ("Dashboard", "dashboard", 0),
@@ -123,11 +152,13 @@ class Sidebar(QWidget):
         for text, icon_name, index in nav_items:
             btn = NavButton(text, icon_name, index)
             btn.clicked.connect(lambda _, idx=index: self._on_btn_clicked(idx))
-            layout.addWidget(btn)
+            nav_layout.addWidget(btn)
             self.button_group.addButton(btn, index)
             self.buttons.append(btn)
 
-        layout.addStretch()
+        nav_layout.addStretch()
+        nav_scroll.setWidget(nav_container)
+        layout.addWidget(nav_scroll, stretch=1)
 
         # 3. Bottom Card: Personal Workspace Synced
         footer_card = QFrame()
@@ -187,3 +218,6 @@ class Sidebar(QWidget):
                 btn.update_icon(True)
             else:
                 btn.update_icon(False)
+
+    def minimumSizeHint(self):
+        return QSize(240, 180)

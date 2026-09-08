@@ -20,10 +20,11 @@ from database.repository import MemoryRepository
 
 def setup_page_animation(widget: QWidget):
     effect = QGraphicsOpacityEffect(widget)
+    effect.setOpacity(1.0)
     widget.setGraphicsEffect(effect)
-    anim = QPropertyAnimation(effect, b"opacity")
-    anim.setDuration(280)
-    anim.setStartValue(0.0)
+    anim = QPropertyAnimation(effect, b"opacity", widget)
+    anim.setDuration(240)
+    anim.setStartValue(0.3)
     anim.setEndValue(1.0)
     anim.setEasingCurve(QEasingCurve.Type.OutCubic)
     anim.start()

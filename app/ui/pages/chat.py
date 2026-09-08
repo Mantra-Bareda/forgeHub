@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QTextEdit, QTextBrowser, QScrollArea, QFrame, QMessageBox,
     QSizePolicy, QGraphicsOpacityEffect
 )
-from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QTimer, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt, QRunnable, QThreadPool, Signal, QObject, QTimer, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QShortcut, QKeySequence, QGuiApplication
 from database.repository import ChatRepository, ProfileRepository
 from app.ai import ModelRouter
@@ -14,10 +14,11 @@ from app.ui.components.icons import get_svg_icon, get_svg_pixmap
 
 def setup_page_animation(widget: QWidget):
     effect = QGraphicsOpacityEffect(widget)
+    effect.setOpacity(1.0)
     widget.setGraphicsEffect(effect)
-    anim = QPropertyAnimation(effect, b"opacity")
-    anim.setDuration(280)
-    anim.setStartValue(0.0)
+    anim = QPropertyAnimation(effect, b"opacity", widget)
+    anim.setDuration(240)
+    anim.setStartValue(0.3)
     anim.setEndValue(1.0)
     anim.setEasingCurve(QEasingCurve.Type.OutCubic)
     anim.start()
@@ -362,7 +363,24 @@ class AIChatPage(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setStyleSheet("QScrollArea { background-color: #0b0f17; border: none; }")
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color: #0b0f17;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1e293b;
+                border-radius: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #2196f3;
+            }
+        """)
 
         self.history_container = QWidget()
         self.history_container.setStyleSheet("background-color: #0b0f17;")
@@ -389,7 +407,8 @@ class AIChatPage(QWidget):
 
     def create_top_bar(self) -> QFrame:
         bar = QFrame()
-        bar.setFixedHeight(54)
+        bar.setMinimumWidth(0)
+        bar.setFixedHeight(50)
         bar.setStyleSheet("""
             QFrame {
                 background-color: #0c0e14;
@@ -397,8 +416,8 @@ class AIChatPage(QWidget):
             }
         """)
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(24, 0, 24, 0)
-        layout.setSpacing(14)
+        layout.setContentsMargins(14, 0, 14, 0)
+        layout.setSpacing(10)
 
         # Title & Context
         title_box = QHBoxLayout()
@@ -410,11 +429,11 @@ class AIChatPage(QWidget):
         title_box.addWidget(icon_lbl)
 
         ws_title = QLabel("AI Workspace")
-        ws_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; background: transparent; border: none;")
+        ws_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; background: transparent; border: none;")
         title_box.addWidget(ws_title)
 
         slash = QLabel("/")
-        slash.setStyleSheet("color: #475569; font-size: 14px; background: transparent; border: none;")
+        slash.setStyleSheet("color: #475569; font-size: 13px; background: transparent; border: none;")
         title_box.addWidget(slash)
 
         # Context Indicator Pill
@@ -423,12 +442,12 @@ class AIChatPage(QWidget):
             QFrame {
                 background-color: #131b2a;
                 border: 1px solid #1e293b;
-                border-radius: 14px;
-                padding: 3px 10px;
+                border-radius: 12px;
+                padding: 2px 8px;
             }
         """)
         cp_lay = QHBoxLayout(self.context_pill)
-        cp_lay.setContentsMargins(8, 2, 8, 2)
+        cp_lay.setContentsMargins(6, 2, 6, 2)
         cp_lay.setSpacing(6)
 
         dot = QFrame()
@@ -436,7 +455,7 @@ class AIChatPage(QWidget):
         dot.setStyleSheet("background-color: #4edea3; border-radius: 3px;")
         cp_lay.addWidget(dot)
 
-        self.context_lbl = QLabel(f"{self.chat_context.capitalize()} • Dynamic AI Router")
+        self.context_lbl = QLabel(f"{self.chat_context.capitalize()} • Router")
         self.context_lbl.setStyleSheet("color: #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         cp_lay.addWidget(self.context_lbl)
         title_box.addWidget(self.context_pill)
@@ -445,18 +464,18 @@ class AIChatPage(QWidget):
         layout.addStretch()
 
         # Right Action Buttons
-        self.insights_toggle_btn = QPushButton(" View AI Insights ✨")
-        self.insights_toggle_btn.setIcon(get_svg_icon("sparkles", "#4edea3", 14))
+        self.insights_toggle_btn = QPushButton(" Insights ✨")
+        self.insights_toggle_btn.setIcon(get_svg_icon("sparkles", "#4edea3", 13))
         self.insights_toggle_btn.setStyleSheet("""
             QPushButton {
                 background-color: #131b2a;
                 border: 1px solid #1e293b;
-                border-radius: 14px;
+                border-radius: 12px;
                 color: #f1f5f9;
                 font-family: 'Inter', sans-serif;
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 500;
-                padding: 5px 14px;
+                padding: 4px 10px;
             }
             QPushButton:hover {
                 background-color: #1e293b;
@@ -466,8 +485,8 @@ class AIChatPage(QWidget):
         self.insights_toggle_btn.clicked.connect(self.toggle_insights)
         layout.addWidget(self.insights_toggle_btn)
 
-        toggle_ctx_btn = QPushButton(" Toggle Context")
-        toggle_ctx_btn.setIcon(get_svg_icon("swap_horiz", "#94a3b8", 14))
+        toggle_ctx_btn = QPushButton(" Context")
+        toggle_ctx_btn.setIcon(get_svg_icon("swap_horiz", "#94a3b8", 13))
         toggle_ctx_btn.setStyleSheet("""
             QPushButton {
                 background-color: #131b2a;
@@ -475,8 +494,8 @@ class AIChatPage(QWidget):
                 border-radius: 6px;
                 color: #94a3b8;
                 font-family: 'Inter', sans-serif;
-                font-size: 12px;
-                padding: 5px 12px;
+                font-size: 11px;
+                padding: 4px 8px;
             }
             QPushButton:hover {
                 color: #f1f5f9;
@@ -486,8 +505,8 @@ class AIChatPage(QWidget):
         toggle_ctx_btn.clicked.connect(self.cycle_context)
         layout.addWidget(toggle_ctx_btn)
 
-        new_sess_btn = QPushButton(" New Session")
-        new_sess_btn.setIcon(get_svg_icon("refresh", "#ffffff", 14))
+        new_sess_btn = QPushButton(" New")
+        new_sess_btn.setIcon(get_svg_icon("refresh", "#ffffff", 13))
         new_sess_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2196f3;
@@ -495,9 +514,9 @@ class AIChatPage(QWidget):
                 border-radius: 6px;
                 color: #ffffff;
                 font-family: 'Inter', sans-serif;
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 600;
-                padding: 6px 14px;
+                padding: 4px 10px;
             }
             QPushButton:hover {
                 background-color: #1e88e5;
@@ -757,3 +776,7 @@ class AIChatPage(QWidget):
             friendly_error = "Network connection failed. Forge Hub is running in offline mode. AI features require an active internet connection or a local model."
 
         QMessageBox.critical(self, "AI Routing Error", friendly_error)
+
+    def minimumSizeHint(self):
+        return QSize(300, 200)
+

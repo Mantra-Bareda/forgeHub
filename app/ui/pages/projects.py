@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QScrollArea, QFrame, QStackedWidget, QGraphicsOpacityEffect
 )
-from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QCursor
 
 from database.repository import ProjectRepository
@@ -455,6 +455,7 @@ class ProjectListWidget(QWidget):
         # Scroll Area for Project Cards
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll.setStyleSheet("""
             QScrollArea {
                 background: transparent;
@@ -558,8 +559,8 @@ class ProjectsPage(QWidget):
         self._opacity_effect.setOpacity(1.0)
         self.setGraphicsEffect(self._opacity_effect)
 
-        self._fade_anim = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._fade_anim.setDuration(280)
+        self._fade_anim = QPropertyAnimation(self._opacity_effect, b"opacity", self)
+        self._fade_anim.setDuration(240)
         self._fade_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
     def showEvent(self, event):
@@ -568,8 +569,7 @@ class ProjectsPage(QWidget):
 
     def play_entrance_animation(self):
         self._fade_anim.stop()
-        self._opacity_effect.setOpacity(0.0)
-        self._fade_anim.setStartValue(0.0)
+        self._fade_anim.setStartValue(0.3)
         self._fade_anim.setEndValue(1.0)
         self._fade_anim.start()
 
@@ -586,3 +586,7 @@ class ProjectsPage(QWidget):
         self.list_widget.load_projects()
         self.stacked_widget.setCurrentIndex(0)
         self.play_entrance_animation()
+
+    def minimumSizeHint(self):
+        return QSize(350, 250)
+

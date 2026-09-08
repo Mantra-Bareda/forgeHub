@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QScrollArea, QDialog, QHBoxLayout, QFrame,
     QStackedWidget, QGraphicsOpacityEffect, QGridLayout
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QThreadPool
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QThreadPool, QSize
 from database.repository import ProfileRepository
 from app.ui.components.flow_layout import FlowLayout
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
@@ -13,10 +13,11 @@ from app.ui.pages.chat import AIChatPage
 
 def setup_page_animation(widget: QWidget):
     effect = QGraphicsOpacityEffect(widget)
+    effect.setOpacity(1.0)
     widget.setGraphicsEffect(effect)
-    anim = QPropertyAnimation(effect, b"opacity")
-    anim.setDuration(280)
-    anim.setStartValue(0.0)
+    anim = QPropertyAnimation(effect, b"opacity", widget)
+    anim.setDuration(240)
+    anim.setStartValue(0.3)
     anim.setEndValue(1.0)
     anim.setEasingCurve(QEasingCurve.Type.OutCubic)
     anim.start()
@@ -1240,3 +1241,7 @@ class GitHubPage(QWidget):
             pass
 
         QMessageBox.information(self, "Success", "GitHub profile data saved. AI is updating your memory and insights in the background!")
+
+    def minimumSizeHint(self):
+        return QSize(350, 250)
+

@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QStackedWidget, QLabel
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QGuiApplication
 from app.ui.components.sidebar import Sidebar
 from app.ui.pages.dashboard import DashboardPage
 from app.ui.pages.projects import ProjectsPage
@@ -19,13 +20,44 @@ class ClickableLabel(QLabel):
             self.clicked.emit()
         super().mousePressEvent(event)
 
+class AdaptiveStackedWidget(QStackedWidget):
+    """StackedWidget that reports adaptive minimum sizes based on the active page."""
+    def minimumSizeHint(self):
+        cur = self.currentWidget()
+        if cur:
+            h = cur.minimumSizeHint()
+            return QSize(min(h.width(), 350), min(h.height(), 250))
+        return QSize(300, 200)
+
+    def sizeHint(self):
+        cur = self.currentWidget()
+        if cur:
+            return cur.sizeHint()
+        return super().sizeHint()
+
 class MainWindow(QMainWindow):
     def __init__(self, config, db_manager):
         super().__init__()
         self.config = config
         self.db_manager = db_manager
         self.setWindowTitle(f"{config.get('app_name', 'Forge Hub')} v{config.get('version', '0.1.0')}")
-        self.resize(1100, 750)
+        
+        # Allow shrinking down to compact laptops/screens
+        self.setMinimumSize(720, 480)
+
+        # Screen-aware initial geometry
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            avail = screen.availableGeometry()
+            target_w = min(1180, max(750, int(avail.width() * 0.88)))
+            target_h = min(780, max(480, int(avail.height() * 0.88)))
+            self.resize(target_w, target_h)
+            x = avail.x() + max(0, (avail.width() - target_w) // 2)
+            y = avail.y() + max(0, (avail.height() - target_h) // 2)
+            self.move(x, y)
+        else:
+            self.resize(1100, 720)
+
         
         # Central widget and layout
         self.central_widget = QWidget()
@@ -52,6 +84,46 @@ class MainWindow(QMainWindow):
             QStatusBar::item {
                 border: none;
             }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 5px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1e293b;
+                border-radius: 2px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #334155;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+                background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                background: transparent;
+                height: 5px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #1e293b;
+                border-radius: 2px;
+                min-width: 20px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #334155;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0px;
+                background: none;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
         """)
         
         # Sidebar
@@ -59,7 +131,7 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(self.sidebar)
         
         # Stacked Widget for pages
-        self.stacked_widget = QStackedWidget()
+        self.stacked_widget = AdaptiveStackedWidget()
         self.stacked_widget.setStyleSheet("background-color: #0b0f17;")
         self.main_layout.addWidget(self.stacked_widget)
         
