@@ -1,3 +1,4 @@
+from app.ui.components.media_widget import MediaUploadWidget
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
                                  QLabel, QLineEdit, QTextEdit, 
                                  QPushButton, QMessageBox, QDateEdit)
@@ -29,6 +30,10 @@ class CertificateDialog(QDialog):
         self.url_input = QLineEdit()
         layout.addWidget(self.url_input)
         
+        self.media_widget = MediaUploadWidget(parent.repo.db if hasattr(parent, 'repo') else None)
+        self.media_widget.load_entity("certificate", None)
+        layout.addWidget(self.media_widget)
+
         btn_layout = QHBoxLayout()
         self.save_btn = QPushButton("Save")
         self.cancel_btn = QPushButton("Cancel")
@@ -78,6 +83,10 @@ class HackathonDialog(QDialog):
         self.date_input.setDate(QDate.currentDate())
         layout.addWidget(self.date_input)
         
+        self.media_widget = MediaUploadWidget(parent.repo.db if hasattr(parent, 'repo') else None)
+        self.media_widget.load_entity("hackathon", None)
+        layout.addWidget(self.media_widget)
+
         btn_layout = QHBoxLayout()
         self.save_btn = QPushButton("Save")
         self.cancel_btn = QPushButton("Cancel")

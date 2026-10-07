@@ -1,0 +1,441 @@
+{
+    "Mistral": {
+        "codestral-2508": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "codestral-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "labs-leanstral-1-5": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "labs-leanstral-1-5-1": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "magistral-medium-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "magistral-small-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "ministral-14b-2512": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "ministral-14b-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "ministral-3b-2512": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "ministral-3b-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "ministral-8b-2512": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "ministral-8b-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-code-fim-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-code-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-medium": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-medium-2604": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-medium-3": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-medium-3-5": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-medium-3.5": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-medium-latest": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-moderation-2603": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-small-2603": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-small-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-vibe-cli-fast": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-vibe-cli-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-vibe-cli-with-tools": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-small-2507": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-small-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "codestral-embed": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "codestral-embed-2505": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-embed": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-embed-2312": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-2512": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-3": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-3-0": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-4": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-4-0": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-4-1": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "mistral-ocr-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-2602": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-realtime-2602": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-realtime-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-transcribe-realtime-2602": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-tts-2603": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "voxtral-mini-tts-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        }
+    },
+    "Gemini": {
+        "antigravity-preview-05-2026": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "antigravity-preview-09-2026": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "deep-research-max-preview-04-2026": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "deep-research-preview-04-2026": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "deep-research-pro-preview-12-2025": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-computer-use-preview-10-2025": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-flash": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-flash-lite": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-pro": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3-flash-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-flash-lite": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-flash-lite-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-pro-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-pro-preview-customtools": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.5-flash": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.5-flash-lite": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.6-flash": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.7-flash": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.8-flash": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-flash-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-flash-lite-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-omni-1.1-flash": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-omni-flash-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-pro-latest": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-robotics-er-2-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemma-4-26b-a4b-it": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemma-4-31b-it": {
+            "is_enabled": 1,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "lyria-3-clip-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "lyria-3-pro-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "lyria-3.5": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3-pro-image-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3-pro-image": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "nano-banana-pro-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-flash-preview-tts": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-flash-tts-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-flash-image": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-flash-image-preview": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-flash-image": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.1-flash-lite-image": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-2.5-pro-preview-tts": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        },
+        "gemini-3.5-transcribe": {
+            "is_enabled": 0,
+            "rpm_limit": null,
+            "rpd_limit": null
+        }
+    }
+}

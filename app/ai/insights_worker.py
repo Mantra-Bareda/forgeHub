@@ -39,7 +39,10 @@ class BackgroundInsightsWorker(QRunnable):
                 certs = [c['title'] for c in repo.get_linkedin_certificates()]
                 projects = [p['title'] for p in repo.get_linkedin_projects()]
                 
-                context_str += f"Skills: {skills}\nLanguages: {langs}\nCertificates: {certs}\nProjects: {projects}"
+                posts = repo.get_linkedin_posts()
+                posts_str = "\n".join([f"- Post: {p['content'][:50]}... | Attached Media: {p.get('media_description', 'None')}" for p in posts])
+                
+                context_str += f"Skills: {skills}\nLanguages: {langs}\nCertificates: {certs}\nProjects: {projects}\n\nPast Posts & Media:\n{posts_str}"
                 context_str += cross_ref_str
                 
                 prompt = "Analyze this LinkedIn profile. Compare the LinkedIn profile data against the internal private projects/achievements. Provide 3-4 specific, actionable suggestions. For example, if an internal project or achievement is missing from LinkedIn, suggest adding it. Also suggest what to remove (e.g., redundant skills), or how to improve it. Use markdown bullet points."

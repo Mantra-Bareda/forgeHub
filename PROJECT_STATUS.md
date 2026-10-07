@@ -87,5 +87,6 @@
 - [x] Phase 26 (Testing): `pytest` suite guarantees data stability.
 
 ### Next Steps (Immediate)
+- [x] **Media Uploads & Storage (V2.5 Update):** Added secure internal AppData storage for user-uploaded media (PDFs, Images, Docs). Wired MediaUploadWidget into Projects, LinkedIn Posts, Certificates, and Hackathons for offline tracking and easy downloading.
 - [ ] **Phase 27 - Phase 28: Packaging & Final Polish**
   - Application Icon, PyInstaller bundling, desktop shortcuts, and Release Build.

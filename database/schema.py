@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS projects (
     status TEXT DEFAULT 'Planning',
     features TEXT,
     live_link TEXT,
+    research_data TEXT,
     github_added BOOLEAN DEFAULT 0,
     linkedin_added BOOLEAN DEFAULT 0,
     linkedin_post TEXT,
@@ -15,6 +16,19 @@ CREATE TABLE IF NOT EXISTS projects (
     ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Media Attachments
+CREATE TABLE IF NOT EXISTS media_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    file_name TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    file_type TEXT,
+    file_size INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 CREATE TABLE IF NOT EXISTS project_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,6 +71,19 @@ CREATE TABLE IF NOT EXISTS profile (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Media Attachments
+CREATE TABLE IF NOT EXISTS media_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    file_name TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    file_type TEXT,
+    file_size INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE IF NOT EXISTS skills (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
@@ -91,6 +118,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER,
     chat_context TEXT DEFAULT 'general',
+    session_id TEXT,
     role TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -109,6 +137,7 @@ CREATE TABLE IF NOT EXISTS api_keys_metadata (
     provider_id INTEGER NOT NULL,
     display_name TEXT NOT NULL,
     api_key TEXT,
+    key_slot INTEGER DEFAULT 1,
     enabled BOOLEAN DEFAULT 1,
     status TEXT,
     last_tested TIMESTAMP,
@@ -194,6 +223,19 @@ CREATE TABLE IF NOT EXISTS linkedin_data (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Media Attachments
+CREATE TABLE IF NOT EXISTS media_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    file_name TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    file_type TEXT,
+    file_size INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE IF NOT EXISTS linkedin_posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
@@ -234,6 +276,19 @@ CREATE TABLE IF NOT EXISTS github_data (
     ai_insights TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Media Attachments
+CREATE TABLE IF NOT EXISTS media_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    file_name TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    file_type TEXT,
+    file_size INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 """
 
 def initialize_database(db_manager):
@@ -245,7 +300,38 @@ def initialize_database(db_manager):
         if version == 0:
             conn.executescript(SCHEMA)
             cursor.execute("PRAGMA user_version = 1")
-        elif version == 1:
-            pass # Add future migrations here
+        if version == 1:
+            try:
+                conn.execute('''
+                CREATE TABLE IF NOT EXISTS media_attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entity_type TEXT NOT NULL,
+                    entity_id INTEGER NOT NULL,
+                    file_name TEXT NOT NULL,
+                    storage_path TEXT NOT NULL,
+                    file_type TEXT,
+                    file_size INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                ''')
+                cursor.execute("PRAGMA user_version = 2")
+            except Exception as e:
+                print("Migration failed:", e)
+        if version == 2:
+            try:
+                conn.execute('ALTER TABLE projects ADD COLUMN research_data TEXT;')
+                cursor.execute("PRAGMA user_version = 3")
+            except Exception as e:
+                print("Migration failed:", e)
+        if version <= 3:
+            try:
+                # Need to check if column exists first since versioning might be wonky
+                cursor.execute("PRAGMA table_info(api_keys_metadata)")
+                columns = [info['name'] for info in cursor.fetchall()]
+                if 'key_slot' not in columns:
+                    conn.execute('ALTER TABLE api_keys_metadata ADD COLUMN key_slot INTEGER DEFAULT 1;')
+                cursor.execute("PRAGMA user_version = 4")
+            except Exception as e:
+                print("Migration failed:", e)
             
         conn.commit()

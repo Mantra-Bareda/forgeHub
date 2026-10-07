@@ -28,7 +28,7 @@ class ModelRouter:
     def _set_rate_limit(self, provider_name: str, cooldown_seconds: int = 60):
         """Mark a provider as rate-limited for a cooldown period."""
         self.rate_limit_cooldowns[provider_name] = time.time() + cooldown_seconds
-        logger.warning(f"Rate-limited {provider_name} for {cooldown_seconds}s")
+        logger.debug(f"Rate-limited {provider_name} for {cooldown_seconds}s")
 
     def _estimate_tokens(self, text: str) -> int:
         """Rough token estimation: ~4 chars per token for English text."""
@@ -45,7 +45,7 @@ class ModelRouter:
             return "Reasoning"
         return "General"
 
-    def route_request(self, prompt: str, category: str = "General", system_prompt: str = "", context: str = "", max_tokens: int = 1024) -> tuple:
+    def route_request(self, prompt: str, category: str = "General", system_prompt: str = "", context: str = "", max_tokens: int = 1024, fallback_allowed: bool = True, custom_models: list = None) -> tuple:
         """
         Dynamically routes a prompt to the best available model.
         Returns a tuple: (response_text, metadata_dict)
@@ -66,12 +66,33 @@ class ModelRouter:
         categorized_models = [m for m in all_models if m.get("category") == category]
         other_models = [m for m in all_models if m.get("category") != category]
         
-        models = categorized_models + other_models
+        if custom_models:
+            models = custom_models
+        elif fallback_allowed:
+            models = categorized_models + other_models
+        else:
+            models = categorized_models
+            
+        if not models:
+            raise RoutingError(f"No models available to fulfill request (Category: {category}, Fallback: {fallback_allowed})")
         
-        if not categorized_models:
-            logger.warning(f"No models found for category '{category}'. Falling back to any available.")
+        if fallback_allowed and not categorized_models and not custom_models:
+            logger.debug(f"No models found for category '{category}'. Falling back to any available.")
             selection_reason = "Fallback to generic model (no category match)"
         
+        # Inject refined personalized instruction if configured by user
+        try:
+            from app.core.config import load_config
+            cfg = load_config()
+            refined_inst = cfg.get("refined_personalized_instruction", "").strip()
+            if refined_inst and "### User Personalized Directives ###" not in system_prompt:
+                if system_prompt:
+                    system_prompt = f"{system_prompt}\n\n### User Personalized Directives ###\n{refined_inst}"
+                else:
+                    system_prompt = f"### User Personalized Directives ###\n{refined_inst}"
+        except Exception:
+            pass
+
         total_input = f"{system_prompt}\n{context}\n{prompt}"
         estimated_tokens = self._estimate_tokens(total_input) + max_tokens
             

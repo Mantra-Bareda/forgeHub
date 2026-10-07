@@ -26,12 +26,19 @@ class ProjectRepository(Repository):
             conn.commit()
             return project_id
 
-    def update_project(self, project_id, name, description, tech_stack, status):
+    def update_project(self, project_id, name, description, tech_stack, status, features=None):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Fetch existing features if none provided
+            if features is None:
+                cursor.execute("SELECT features FROM projects WHERE id = ?", (project_id,))
+                row = cursor.fetchone()
+                features = row["features"] if row else ""
+                
             cursor.execute(
-                "UPDATE projects SET name = ?, description = ?, technology_stack = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (name, description, tech_stack, status, project_id)
+                "UPDATE projects SET name = ?, description = ?, features = ?, technology_stack = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (name, description, features, tech_stack, status, project_id)
             )
             self._log_activity(cursor, project_id, "Project Updated", "Project details were updated.")
             conn.commit()
@@ -694,10 +701,38 @@ class ProviderRepository(Repository):
             return rows
 
 class ChatRepository(Repository):
-    def get_chat_history(self, project_id=None, limit=50, chat_context='general'):
+    def get_chat_sessions(self, project_id=None, chat_context='general'):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             if project_id:
+                cursor.execute("""
+                    SELECT session_id, content, MIN(created_at) as started_at
+                    FROM conversations 
+                    WHERE project_id = ? AND chat_context = ? AND role = 'user' AND session_id IS NOT NULL
+                    GROUP BY session_id
+                    ORDER BY started_at DESC
+                """, (project_id, chat_context))
+            else:
+                cursor.execute("""
+                    SELECT session_id, content, MIN(created_at) as started_at
+                    FROM conversations 
+                    WHERE project_id IS NULL AND chat_context = ? AND role = 'user' AND session_id IS NOT NULL
+                    GROUP BY session_id
+                    ORDER BY started_at DESC
+                """, (chat_context,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_chat_history(self, project_id=None, limit=50, chat_context='general', session_id=None):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            if session_id:
+                cursor.execute("""
+                    SELECT * FROM (
+                        SELECT role, content, created_at FROM conversations 
+                        WHERE session_id = ? ORDER BY created_at DESC LIMIT ?
+                    ) ORDER BY created_at ASC
+                """, (session_id, limit))
+            elif project_id:
                 cursor.execute("""
                     SELECT * FROM (
                         SELECT role, content, created_at FROM conversations 
@@ -708,18 +743,18 @@ class ChatRepository(Repository):
                 cursor.execute("""
                     SELECT * FROM (
                         SELECT role, content, created_at FROM conversations 
-                        WHERE project_id IS NULL AND chat_context = ? ORDER BY created_at DESC LIMIT ?
+                        WHERE project_id IS NULL AND chat_context = ? AND session_id IS NULL ORDER BY created_at DESC LIMIT ?
                     ) ORDER BY created_at ASC
                 """, (chat_context, limit))
             return [dict(row) for row in cursor.fetchall()]
 
-    def save_message(self, role, content, project_id=None, chat_context='general'):
+    def save_message(self, role, content, project_id=None, chat_context='general', session_id=None):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO conversations (project_id, chat_context, role, content)
-                VALUES (?, ?, ?, ?)
-            """, (project_id, chat_context, role, content))
+                INSERT INTO conversations (project_id, chat_context, session_id, role, content)
+                VALUES (?, ?, ?, ?, ?)
+            """, (project_id, chat_context, session_id, role, content))
             conn.commit()
 
     def clear_history(self, project_id=None, chat_context='general'):
@@ -818,6 +853,7 @@ class CertificateRepository(Repository):
                 "INSERT INTO certificates (title, issuer, issue_date, expiry_date, credential_url) VALUES (?, ?, ?, ?, ?)",
                 (title, issuer, issue_date, expiry_date, credential_url)
             )
+            return cursor.lastrowid
             conn.commit()
 
     def delete_certificate(self, cert_id):
@@ -849,6 +885,7 @@ class HackathonRepository(Repository):
                 "INSERT INTO hackathons (event_name, project_submitted, standing, date) VALUES (?, ?, ?, ?)",
                 (event_name, project_submitted, standing, date)
             )
+            return cursor.lastrowid
             conn.commit()
 
     def delete_hackathon(self, hackathon_id):
@@ -866,3 +903,31 @@ class HackathonRepository(Repository):
             )
             conn.commit()
 
+
+class MediaRepository:
+    def __init__(self, db_manager):
+        self.db = db_manager
+
+    def add_media(self, entity_type, entity_id, file_name, storage_path, file_type, file_size):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO media_attachments (entity_type, entity_id, file_name, storage_path, file_type, file_size)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (entity_type, entity_id, file_name, storage_path, file_type, file_size))
+            return cursor.lastrowid
+
+    def get_media_for_entity(self, entity_type, entity_id):
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM media_attachments 
+                WHERE entity_type = ? AND entity_id = ?
+                ORDER BY created_at DESC
+            ''', (entity_type, entity_id))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def delete_media(self, media_id):
+        with self.db.get_connection() as conn:
+            conn.execute("DELETE FROM media_attachments WHERE id = ?", (media_id,))
+            conn.commit()

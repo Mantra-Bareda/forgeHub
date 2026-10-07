@@ -1,14 +1,18 @@
 import re
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, QMessageBox,
     QLineEdit, QScrollArea, QDialog, QHBoxLayout, QFrame, QMenu,
-    QStackedWidget, QSizePolicy, QGraphicsOpacityEffect
+    QStackedWidget, QSizePolicy, QGraphicsOpacityEffect, QBoxLayout
 )
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QThreadPool, QSize
 from database.repository import ProfileRepository
 from app.ui.components.flow_layout import FlowLayout
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
 from app.ui.pages.chat import AIChatPage
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 
 
 def setup_page_animation(widget: QWidget):
@@ -28,39 +32,42 @@ class ModernDialog(QDialog):
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.apply_theme_colors(get_current_palette())
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {pal.bg_card};
+                border: 1px solid {pal.border_card};
                 border-radius: 12px;
-            }
-            QLabel {
-                color: #94a3b8;
+            }}
+            QLabel {{
+                color: {pal.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 500;
                 background: transparent;
                 border: none;
-            }
-            QLineEdit, QTextEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+            }}
+            QLineEdit, QTextEdit {{
+                background-color: {pal.bg_input};
+                border: 1px solid {pal.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {pal.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 8px 12px;
-            }
-            QLineEdit:focus, QTextEdit:focus {
-                border: 1px solid #2196f3;
-            }
-            QPushButton {
+            }}
+            QLineEdit:focus, QTextEdit:focus {{
+                border: 1px solid {pal.accent};
+            }}
+            QPushButton {{
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 border-radius: 8px;
                 padding: 8px 16px;
-            }
+            }}
         """)
 
 
@@ -73,7 +80,7 @@ class LinkedInPostDialog(ModernDialog):
         layout.setContentsMargins(20, 20, 20, 20)
 
         header = QLabel("Post Content (Text)")
-        header.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+        header.setStyleSheet("color: #FBF6F0; font-size: 14px; font-weight: 600; background: transparent; border: none;")
         layout.addWidget(header)
 
         self.content_input = QTextEdit()
@@ -82,24 +89,30 @@ class LinkedInPostDialog(ModernDialog):
         self.content_input.setPlainText(initial_content)
         layout.addWidget(self.content_input)
 
-        media_lbl = QLabel("Media / Link Description")
-        media_lbl.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+        media_lbl = QLabel("Media Attached (Describe each media item, if any)")
+        media_lbl.setStyleSheet("color: #FBF6F0; font-size: 14px; font-weight: 600; background: transparent; border: none;")
         layout.addWidget(media_lbl)
 
-        self.media_input = QLineEdit()
-        self.media_input.setPlaceholderText("e.g. Architecture diagram, GitHub demo URL, or infographic")
-        self.media_input.setText(initial_media)
+        self.media_input = QTextEdit()
+        self.media_input.setMinimumHeight(80)
+        self.media_input.setPlaceholderText("- Media 1: e.g., A screenshot of the UI running on localhost\n- Media 2: e.g., A short video demo of the AI feature\nDescribe what media you attached to this post.")
+        self.media_input.setPlainText(initial_media)
         layout.addWidget(self.media_input)
+        
+        # Actual media files
+        self.media_widget = MediaUploadWidget(parent.repo.db if hasattr(parent, 'repo') else None)
+        self.media_widget.load_entity("linkedin_post", None)
+        layout.addWidget(self.media_widget)
 
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Save Post")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -107,7 +120,7 @@ class LinkedInPostDialog(ModernDialog):
     def get_data(self):
         return {
             "content": self.content_input.toPlainText().strip(),
-            "media_description": self.media_input.text().strip()
+            "media_description": self.media_input.toPlainText().strip()
         }
 
 
@@ -133,12 +146,12 @@ class LinkedInCertificateDialog(ModernDialog):
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Add Certificate")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -172,12 +185,12 @@ class LinkedInProjectDialog(ModernDialog):
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Add Project")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -205,12 +218,12 @@ class AddItemDialog(ModernDialog):
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Add")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -219,12 +232,47 @@ class AddItemDialog(ModernDialog):
         return self.input_field.text().strip()
 
 
+class ResponsiveSplit(QWidget):
+    def __init__(self, left_col: QVBoxLayout, right_col: QVBoxLayout, parent=None):
+        super().__init__(parent)
+        self.box = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
+        self.box.setContentsMargins(0, 0, 0, 0)
+        self.box.setSpacing(18)
+
+        self.left_widget = QWidget()
+        self.left_widget.setLayout(left_col)
+        self.right_widget = QWidget()
+        self.right_widget.setLayout(right_col)
+
+        self.box.addWidget(self.left_widget, stretch=7)
+        self.box.addWidget(self.right_widget, stretch=5)
+
+    def minimumSizeHint(self):
+        w = max(self.left_widget.minimumSizeHint().width(), self.right_widget.minimumSizeHint().width())
+        h = self.left_widget.minimumSizeHint().height() + self.right_widget.minimumSizeHint().height()
+        return QSize(w, h)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if event.size().width() < 800:
+            if self.box.direction() != QBoxLayout.Direction.TopToBottom:
+                self.box.setDirection(QBoxLayout.Direction.TopToBottom)
+                self.box.setStretch(0, 0)
+                self.box.setStretch(1, 0)
+        else:
+            if self.box.direction() != QBoxLayout.Direction.LeftToRight:
+                self.box.setDirection(QBoxLayout.Direction.LeftToRight)
+                self.box.setStretch(0, 7)
+                self.box.setStretch(1, 5)
+
+
 class LinkedInPage(QWidget):
     def __init__(self, db_manager):
         super().__init__()
         self.db = db_manager
         self.repo = ProfileRepository(db_manager)
 
+        self.palette = get_current_palette()
         self.stacked_widget = QStackedWidget(self)
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -243,21 +291,21 @@ class LinkedInPage(QWidget):
 
         chat_top = QHBoxLayout()
         back_btn = QPushButton(" Back to LinkedIn Form")
-        back_btn.setIcon(get_svg_icon("arrow_back", "#94a3b8", 16))
-        back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        back_btn.setIcon(get_svg_icon("arrow_back", f"{self.palette.fg_muted}", 16))
+        back_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+            }}
         """)
         back_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
         chat_top.addWidget(back_btn)
@@ -271,6 +319,25 @@ class LinkedInPage(QWidget):
         self.load_data()
         setup_page_animation(self)
 
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.setStyleSheet(f"""
+            QWidget {{ background-color: {self.palette.bg_app}; }}
+            QScrollArea {{ background-color: {self.palette.bg_app}; border: none; }}
+            QFrame {{ background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; }}
+            QLineEdit, QTextEdit {{ background-color: {self.palette.bg_input}; color: {self.palette.fg_primary}; border: 1px solid {self.palette.border_subtle}; }}
+            QLabel {{ color: {self.palette.fg_primary}; background: transparent; border: none; }}
+            QPushButton {{ background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; color: {self.palette.fg_primary}; }}
+        """)
+        for child in self.findChildren(QWidget):
+            if hasattr(child, "apply_theme_colors") and child is not self:
+                child.apply_theme_colors(pal)
+        self.load_posts()
+        self.load_certificates()
+        self.load_projects()
+        self.load_languages()
+        self.load_skills()
+
     def init_form_ui(self):
         layout = QVBoxLayout(self.form_page)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -280,28 +347,26 @@ class LinkedInPage(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background-color: #0b0f17; border: none; }")
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setStyleSheet(f"QScrollArea {{ background-color: {self.palette.bg_app}; border: none; }}")
 
         content = QWidget()
-        content.setStyleSheet("background-color: #0b0f17;")
+        content.setStyleSheet(f"background-color: {self.palette.bg_app};")
         self.content_layout = QVBoxLayout(content)
-        self.content_layout.setContentsMargins(32, 28, 32, 100) # bottom margin for fixed bottom bar
-        self.content_layout.setSpacing(24)
+        self.content_layout.setContentsMargins(18, 18, 18, 80) # bottom margin for fixed bottom bar
+        self.content_layout.setSpacing(18)
 
         # Header Bar
         header_bar = self.create_header_bar()
         self.content_layout.addLayout(header_bar)
 
-        # 12-Column Split Workstation (7 left cols, 5 right cols)
-        split_layout = QHBoxLayout()
-        split_layout.setSpacing(24)
-
+        # Responsive 12-Column / Stacked Workstation
         left_col = self.create_left_column()
         right_col = self.create_right_column()
 
-        split_layout.addLayout(left_col, stretch=7)
-        split_layout.addLayout(right_col, stretch=5)
-        self.content_layout.addLayout(split_layout)
+        self.split_widget = ResponsiveSplit(left_col, right_col)
+        self.content_layout.addWidget(self.split_widget)
 
         scroll.setWidget(content)
         layout.addWidget(scroll, stretch=1)
@@ -310,95 +375,99 @@ class LinkedInPage(QWidget):
         bottom_bar = self.create_bottom_bar()
         layout.addWidget(bottom_bar)
 
-    def create_header_bar(self) -> QHBoxLayout:
-        bar = QHBoxLayout()
-        bar.setSpacing(16)
+    def create_header_bar(self) -> QVBoxLayout:
+        bar = QVBoxLayout()
+        bar.setSpacing(8)
+
+        top_row = QHBoxLayout()
+        top_row.setSpacing(10)
 
         # Left Icon Box
         icon_box = QFrame()
-        icon_box.setFixedSize(44, 44)
-        icon_box.setStyleSheet("""
-            QFrame {
-                background-color: #2c96e5;
-                border-radius: 12px;
-            }
+        icon_box.setFixedSize(36, 36)
+        icon_box.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.accent};
+                border-radius: 8px;
+            }}
         """)
         icon_box_layout = QVBoxLayout(icon_box)
         icon_box_layout.setContentsMargins(0, 0, 0, 0)
         icon_lbl = QLabel()
-        icon_lbl.setPixmap(get_svg_pixmap("share", "#ffffff", 22))
+        icon_lbl.setPixmap(get_svg_pixmap("share", "#ffffff", 18))
         icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_lbl.setStyleSheet("background: transparent; border: none;")
         icon_box_layout.addWidget(icon_lbl)
-        bar.addWidget(icon_box)
+        top_row.addWidget(icon_box)
 
-        # Titles
-        title_box = QVBoxLayout()
-        title_box.setSpacing(2)
         title_lbl = QLabel("LinkedIn Integration")
-        title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 700; background: transparent; border: none;")
-        sub_lbl = QLabel("Sync your personal professional metadata and AI-optimized posts directly to your LinkedIn profile.")
-        sub_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
-        title_box.addWidget(title_lbl)
-        title_box.addWidget(sub_lbl)
-        bar.addLayout(title_box)
+        title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; background: transparent; border: none;")
+        top_row.addWidget(title_lbl)
 
-        bar.addStretch()
+        top_row.addStretch()
 
         # Right actions: Token Synced pill + Open Chat button
         sync_pill = QFrame()
-        sync_pill.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 20px;
-                padding: 4px 14px;
-            }
+        sync_pill.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 12px;
+                padding: 2px 10px;
+            }}
         """)
         pill_layout = QHBoxLayout(sync_pill)
-        pill_layout.setContentsMargins(8, 4, 10, 4)
-        pill_layout.setSpacing(8)
+        pill_layout.setContentsMargins(6, 2, 8, 2)
+        pill_layout.setSpacing(6)
 
         dot = QFrame()
-        dot.setFixedSize(8, 8)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 4px;")
+        dot.setFixedSize(6, 6)
+        dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 3px;")
         pill_layout.addWidget(dot)
 
-        pill_text = QLabel("Token Synced • SQLite Connected")
-        pill_text.setStyleSheet("color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        pill_text = QLabel("Token Synced")
+        pill_text.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         pill_layout.addWidget(pill_text)
-        bar.addWidget(sync_pill)
+        top_row.addWidget(sync_pill)
 
-        chat_btn = QPushButton(" Open LinkedIn AI Chat")
-        chat_btn.setIcon(get_svg_icon("smart_toy", "#ffffff", 16))
-        chat_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        chat_btn = QPushButton(" AI Chat")
+        chat_btn.setIcon(get_svg_icon("smart_toy", "#ffffff", 14))
+        chat_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 color: #ffffff;
                 font-family: 'Inter', sans-serif;
-                font-size: 13px;
+                font-size: 11px;
                 font-weight: 600;
-                padding: 9px 18px;
-            }
-            QPushButton:hover {
+                padding: 6px 14px;
+            }}
+            QPushButton:hover {{
                 background-color: #1e88e5;
-            }
+            }}
         """)
         chat_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(1))
-        bar.addWidget(chat_btn)
+        top_row.addWidget(chat_btn)
+
+        bar.addLayout(top_row)
+
+        sub_lbl = QLabel("Sync your personal professional metadata and AI-optimized posts directly to your LinkedIn profile.")
+        sub_lbl.setWordWrap(True)
+        sub_lbl.setMinimumWidth(1)
+        sub_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+        bar.addWidget(sub_lbl)
 
         return bar
 
     def create_card_frame(self) -> QFrame:
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 14px;
-            }
+            }}
         """)
         return card
 
@@ -415,121 +484,119 @@ class LinkedInPage(QWidget):
         # Card Header
         card_header = QHBoxLayout()
         badge_lbl = QLabel()
-        badge_lbl.setPixmap(get_svg_pixmap("badge", "#2196f3", 20))
+        badge_lbl.setPixmap(get_svg_pixmap("badge", f"{self.palette.accent}", 20))
         badge_lbl.setStyleSheet("background: transparent; border: none;")
         card_header.addWidget(badge_lbl)
 
         card_title = QLabel("LinkedIn Identity")
-        card_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        card_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         card_header.addWidget(card_title)
         card_header.addStretch()
 
         public_pill = QLabel("Public Profile")
-        public_pill.setStyleSheet("""
-            color: #94a3b8;
+        public_pill.setStyleSheet(f"""
+            color: {self.palette.fg_muted};
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            background-color: #0b0f17;
-            border: 1px solid #1e293b;
+            background-color: {self.palette.bg_app};
+            border: 1px solid {self.palette.border_card};
             border-radius: 6px;
             padding: 2px 8px;
         """)
         card_header.addWidget(public_pill)
         id_layout.addLayout(card_header)
 
-        # Two-col row: Username & Professional Headline
-        inputs_row = QHBoxLayout()
-        inputs_row.setSpacing(16)
-
         # Username Input
         user_box = QVBoxLayout()
-        user_box.setSpacing(6)
+        user_box.setSpacing(4)
         user_lbl = QLabel("Username / Vanity URL")
-        user_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
+        user_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
         user_box.addWidget(user_lbl)
 
         user_input_frame = QFrame()
-        user_input_frame.setStyleSheet("""
-            QFrame {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        user_input_frame.setMinimumWidth(0)
+        user_input_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-            }
-            QFrame:focus-within {
-                border: 1px solid #2196f3;
-            }
+            }}
+            QFrame:focus-within {{
+                border: 1px solid {self.palette.accent};
+            }}
         """)
         user_input_layout = QHBoxLayout(user_input_frame)
         user_input_layout.setContentsMargins(10, 0, 10, 0)
         user_input_layout.setSpacing(4)
 
         prefix_lbl = QLabel("linkedin.com/in/")
-        prefix_lbl.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+        prefix_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
         user_input_layout.addWidget(prefix_lbl)
 
         self.username_input = QLineEdit()
-        self.username_input.setStyleSheet("background: transparent; border: none; color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 0;")
+        self.username_input.setMinimumWidth(0)
+        self.username_input.setStyleSheet(f"background: transparent; border: none; color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 0;")
         self.username_input.setPlaceholderText("your-vanity-url")
         user_input_layout.addWidget(self.username_input)
         user_box.addWidget(user_input_frame)
-        inputs_row.addLayout(user_box, stretch=1)
+        id_layout.addLayout(user_box)
 
         # Professional Headline
         bio_box = QVBoxLayout()
-        bio_box.setSpacing(6)
+        bio_box.setSpacing(4)
         bio_lbl = QLabel("Professional Headline")
-        bio_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
+        bio_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
         bio_box.addWidget(bio_lbl)
 
         self.bio_input = QLineEdit()
-        self.bio_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.bio_input.setMinimumWidth(0)
+        self.bio_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 8px 12px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2196f3;
-            }
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {self.palette.accent};
+            }}
         """)
         self.bio_input.setPlaceholderText("e.g. Senior AI Systems Engineer at Forge")
         bio_box.addWidget(self.bio_input)
-        inputs_row.addLayout(bio_box, stretch=1)
-        id_layout.addLayout(inputs_row)
+        id_layout.addLayout(bio_box)
 
         # About / Summary Section
         about_box = QVBoxLayout()
         about_box.setSpacing(6)
         about_header = QHBoxLayout()
         about_lbl = QLabel("About / Summary")
-        about_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
+        about_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: transparent; border: none;")
         about_header.addWidget(about_lbl)
         about_header.addStretch()
 
         self.about_count_lbl = QLabel("Markdown supported • 0 / 2,600 chars")
-        self.about_count_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.about_count_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         about_header.addWidget(self.about_count_lbl)
         about_box.addLayout(about_header)
 
         self.about_input = QTextEdit()
-        self.about_input.setStyleSheet("""
-            QTextEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.about_input.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 10px 12px;
                 line-height: 1.5;
-            }
-            QTextEdit:focus {
-                border: 1px solid #2196f3;
-            }
+            }}
+            QTextEdit:focus {{
+                border: 1px solid {self.palette.accent};
+            }}
         """)
         self.about_input.setMinimumHeight(120)
         self.about_input.textChanged.connect(self.update_about_char_count)
@@ -546,30 +613,30 @@ class LinkedInPage(QWidget):
 
         lang_header = QHBoxLayout()
         lang_icon = QLabel()
-        lang_icon.setPixmap(get_svg_pixmap("language", "#4edea3", 20))
+        lang_icon.setPixmap(get_svg_pixmap("language", f"{self.palette.success}", 20))
         lang_icon.setStyleSheet("background: transparent; border: none;")
         lang_header.addWidget(lang_icon)
 
         lang_title = QLabel("Spoken Languages")
-        lang_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        lang_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         lang_header.addWidget(lang_title)
         lang_header.addStretch()
 
         add_lang_btn = QPushButton("+ Add Language")
-        add_lang_btn.setStyleSheet("""
-            QPushButton {
+        add_lang_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
-                color: #2196f3;
+                color: {self.palette.accent};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 2px 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 color: #60a5fa;
                 text-decoration: underline;
-            }
+            }}
         """)
         add_lang_btn.clicked.connect(self.prompt_add_language)
         lang_header.addWidget(add_lang_btn)
@@ -591,30 +658,30 @@ class LinkedInPage(QWidget):
 
         skills_header = QHBoxLayout()
         skills_icon = QLabel()
-        skills_icon.setPixmap(get_svg_pixmap("brain", "#2c96e5", 20))
+        skills_icon.setPixmap(get_svg_pixmap("brain", f"{self.palette.accent}", 20))
         skills_icon.setStyleSheet("background: transparent; border: none;")
         skills_header.addWidget(skills_icon)
 
         skills_title = QLabel("LinkedIn Skills (AI Ranked)")
-        skills_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        skills_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         skills_header.addWidget(skills_title)
         skills_header.addStretch()
 
         add_skill_btn = QPushButton("+ Add Skill")
-        add_skill_btn.setStyleSheet("""
-            QPushButton {
+        add_skill_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
-                color: #2196f3;
+                color: {self.palette.accent};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 2px 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 color: #60a5fa;
                 text-decoration: underline;
-            }
+            }}
         """)
         add_skill_btn.clicked.connect(self.prompt_add_skill)
         skills_header.addWidget(add_skill_btn)
@@ -642,39 +709,40 @@ class LinkedInPage(QWidget):
 
         posts_header = QHBoxLayout()
         post_icon = QLabel()
-        post_icon.setPixmap(get_svg_pixmap("article", "#4edea3", 20))
+        post_icon.setPixmap(get_svg_pixmap("article", f"{self.palette.success}", 20))
         post_icon.setStyleSheet("background: transparent; border: none;")
         posts_header.addWidget(post_icon)
 
         posts_title = QLabel("Published Posts")
-        posts_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        posts_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         posts_header.addWidget(posts_title)
         posts_header.addStretch()
 
         add_post_btn = QPushButton(" Add Post")
-        add_post_btn.setIcon(get_svg_icon("plus", "#94a3b8", 14))
-        add_post_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        add_post_btn.setIcon(get_svg_icon("plus", f"{self.palette.fg_muted}", 14))
+        add_post_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 4px 10px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         add_post_btn.clicked.connect(self.add_post)
         posts_header.addWidget(add_post_btn)
         posts_layout.addLayout(posts_header)
 
         posts_sub = QLabel("Recently broadcasted items synced directly via Forge Hub Content Engine.")
-        posts_sub.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+        posts_sub.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
         posts_sub.setWordWrap(True)
+        posts_sub.setMinimumWidth(1)
         posts_layout.addWidget(posts_sub)
 
         self.posts_container = QVBoxLayout()
@@ -691,31 +759,31 @@ class LinkedInPage(QWidget):
 
         certs_header = QHBoxLayout()
         cert_icon = QLabel()
-        cert_icon.setPixmap(get_svg_pixmap("award", "#2196f3", 20))
+        cert_icon.setPixmap(get_svg_pixmap("award", f"{self.palette.accent}", 20))
         cert_icon.setStyleSheet("background: transparent; border: none;")
         certs_header.addWidget(cert_icon)
 
         certs_title = QLabel("Certificates")
-        certs_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        certs_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         certs_header.addWidget(certs_title)
         certs_header.addStretch()
 
         add_cert_btn = QPushButton(" Add Certificate")
-        add_cert_btn.setIcon(get_svg_icon("plus", "#94a3b8", 14))
-        add_cert_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        add_cert_btn.setIcon(get_svg_icon("plus", f"{self.palette.fg_muted}", 14))
+        add_cert_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 4px 10px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         add_cert_btn.clicked.connect(self.add_certificate)
         certs_header.addWidget(add_cert_btn)
@@ -740,26 +808,26 @@ class LinkedInPage(QWidget):
         proj_header.addWidget(proj_icon)
 
         proj_title = QLabel("LinkedIn Projects")
-        proj_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        proj_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         proj_header.addWidget(proj_title)
         proj_header.addStretch()
 
         add_proj_btn = QPushButton(" Add Project")
-        add_proj_btn.setIcon(get_svg_icon("plus", "#94a3b8", 14))
-        add_proj_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        add_proj_btn.setIcon(get_svg_icon("plus", f"{self.palette.fg_muted}", 14))
+        add_proj_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 4px 10px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         add_proj_btn.clicked.connect(self.add_project)
         proj_header.addWidget(add_proj_btn)
@@ -775,68 +843,69 @@ class LinkedInPage(QWidget):
 
     def create_bottom_bar(self) -> QFrame:
         bar = QFrame()
-        bar.setFixedHeight(64)
-        bar.setStyleSheet("""
-            QFrame {
-                background-color: #0c0e14;
-                border-top: 1px solid #1e293b;
-            }
+        bar.setMinimumWidth(0)
+        bar.setFixedHeight(54)
+        bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_input};
+                border-top: 1px solid {self.palette.border_card};
+            }}
         """)
         bar_layout = QHBoxLayout(bar)
-        bar_layout.setContentsMargins(32, 0, 32, 0)
+        bar_layout.setContentsMargins(18, 0, 18, 0)
+        bar_layout.setSpacing(10)
 
         # Left Info
         left_info = QHBoxLayout()
-        left_info.setSpacing(10)
+        left_info.setSpacing(8)
         dot = QFrame()
         dot.setFixedSize(8, 8)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 4px;")
+        dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 4px;")
         left_info.addWidget(dot)
 
-        txt = QLabel("All profile changes queued for automatic bi-directional LinkedIn API sync.")
-        txt.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+        txt = QLabel("Auto-sync to LinkedIn enabled.")
+        txt.setMinimumWidth(0)
+        txt.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
         left_info.addWidget(txt)
-        bar_layout.addLayout(left_info)
-
-        bar_layout.addStretch()
+        bar_layout.addLayout(left_info, stretch=1)
 
         # Right Action Buttons
         discard_btn = QPushButton("Discard")
-        discard_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 8px;
-                color: #94a3b8;
+        discard_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 6px;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
-                font-size: 13px;
+                font-size: 11px;
                 font-weight: 600;
-                padding: 8px 18px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-                color: #f1f5f9;
-            }
+                padding: 6px 14px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+                color: {self.palette.fg_primary};
+            }}
         """)
         discard_btn.clicked.connect(self.load_data)
         bar_layout.addWidget(discard_btn)
 
-        save_btn = QPushButton(" Save LinkedIn Profile")
-        save_btn.setIcon(get_svg_icon("save", "#ffffff", 16))
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        save_btn = QPushButton(" Save Profile")
+        save_btn.setIcon(get_svg_icon("save", "#ffffff", 14))
+        save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 color: #ffffff;
                 font-family: 'Inter', sans-serif;
-                font-size: 13px;
+                font-size: 11px;
                 font-weight: 600;
-                padding: 8px 22px;
-            }
-            QPushButton:hover {
+                padding: 6px 16px;
+            }}
+            QPushButton:hover {{
                 background-color: #1e88e5;
-            }
+            }}
         """)
         save_btn.clicked.connect(self.save_preferences)
         bar_layout.addWidget(save_btn)
@@ -870,21 +939,21 @@ class LinkedInPage(QWidget):
         posts = self.repo.get_linkedin_posts()
         if not posts:
             empty = QLabel("No published posts tracked yet.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none; padding: 10px 0;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none; padding: 10px 0;")
             self.posts_container.addWidget(empty)
             return
 
         for post in posts:
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 8px;
-                }
-                QFrame:hover {
+                }}
+                QFrame:hover {{
                     border-color: #334155;
-                }
+                }}
             """)
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(12, 12, 12, 12)
@@ -894,12 +963,12 @@ class LinkedInPage(QWidget):
             top_row = QHBoxLayout()
             date_str = str(post.get("created_at") or "Published")[:10]
             date_lbl = QLabel(f"Published • {date_str}")
-            date_lbl.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            date_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             top_row.addWidget(date_lbl)
             top_row.addStretch()
 
             del_btn = QPushButton()
-            del_btn.setIcon(get_svg_icon("delete", "#94a3b8", 14))
+            del_btn.setIcon(get_svg_icon("delete", f"{self.palette.fg_muted}", 14))
             del_btn.setFixedSize(22, 22)
             del_btn.setStyleSheet("""
                 QPushButton {
@@ -918,15 +987,16 @@ class LinkedInPage(QWidget):
             # Content preview
             content_text = post.get("content") or ""
             preview_lbl = QLabel(content_text if len(content_text) <= 140 else content_text[:140] + "...")
-            preview_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+            preview_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
             preview_lbl.setWordWrap(True)
+            preview_lbl.setMinimumWidth(1)
             card_layout.addWidget(preview_lbl)
 
             # Media Description
             media_text = post.get("media_description") or ""
             if media_text:
                 media_lbl = QLabel(f"Media: {media_text}")
-                media_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+                media_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
                 card_layout.addWidget(media_lbl)
 
             self.posts_container.addWidget(card)
@@ -936,7 +1006,9 @@ class LinkedInPage(QWidget):
         if dialog.exec():
             data = dialog.get_data()
             if data["content"]:
-                self.repo.add_linkedin_post(data["content"], data["media_description"])
+                post_id = self.repo.add_linkedin_post(data["content"], data["media_description"])
+                if post_id and hasattr(dialog, 'media_widget'):
+                    dialog.media_widget.save_pending_files(post_id)
                 self.load_posts()
 
     def delete_post(self, post_id):
@@ -953,18 +1025,18 @@ class LinkedInPage(QWidget):
         certs = self.repo.get_linkedin_certificates()
         if not certs:
             empty = QLabel("No certificates recorded.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none; padding: 8px 0;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none; padding: 8px 0;")
             self.certs_container.addWidget(empty)
             return
 
         for cert in certs:
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 8px;
-                }
+                }}
             """)
             card_layout = QHBoxLayout(card)
             card_layout.setContentsMargins(12, 10, 12, 10)
@@ -972,11 +1044,11 @@ class LinkedInPage(QWidget):
 
             icon_box = QFrame()
             icon_box.setFixedSize(32, 32)
-            icon_box.setStyleSheet("background-color: #131b2a; border-radius: 6px;")
+            icon_box.setStyleSheet(f"background-color: {self.palette.bg_card}; border-radius: 6px;")
             ib_layout = QVBoxLayout(icon_box)
             ib_layout.setContentsMargins(0, 0, 0, 0)
             ib_lbl = QLabel()
-            ib_lbl.setPixmap(get_svg_pixmap("verified", "#2196f3", 16))
+            ib_lbl.setPixmap(get_svg_pixmap("verified", f"{self.palette.accent}", 16))
             ib_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             ib_lbl.setStyleSheet("background: transparent; border: none;")
             ib_layout.addWidget(ib_lbl)
@@ -985,15 +1057,15 @@ class LinkedInPage(QWidget):
             info_box = QVBoxLayout()
             info_box.setSpacing(2)
             title_lbl = QLabel(cert.get("title") or "")
-            title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
+            title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
             desc_lbl = QLabel(cert.get("description") or "")
-            desc_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+            desc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
             info_box.addWidget(title_lbl)
             info_box.addWidget(desc_lbl)
             card_layout.addLayout(info_box, stretch=1)
 
             del_btn = QPushButton()
-            del_btn.setIcon(get_svg_icon("delete", "#94a3b8", 14))
+            del_btn.setIcon(get_svg_icon("delete", f"{self.palette.fg_muted}", 14))
             del_btn.setFixedSize(22, 22)
             del_btn.setStyleSheet("""
                 QPushButton {
@@ -1015,7 +1087,9 @@ class LinkedInPage(QWidget):
         if dialog.exec():
             data = dialog.get_data()
             if data["title"]:
-                self.repo.add_linkedin_certificate(data["title"], data["description"])
+                cid = self.repo.add_linkedin_certificate(data["title"], data["description"])
+                if cid and hasattr(dialog, 'media_widget'):
+                    dialog.media_widget.save_pending_files(cid)
                 self.load_certificates()
 
     def delete_certificate(self, cert_id):
@@ -1032,18 +1106,18 @@ class LinkedInPage(QWidget):
         projs = self.repo.get_linkedin_projects()
         if not projs:
             empty = QLabel("No LinkedIn projects connected.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none; padding: 8px 0;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none; padding: 8px 0;")
             self.projects_container.addWidget(empty)
             return
 
         for proj in projs:
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 8px;
-                }
+                }}
             """)
             card_layout = QHBoxLayout(card)
             card_layout.setContentsMargins(12, 10, 12, 10)
@@ -1055,7 +1129,7 @@ class LinkedInPage(QWidget):
             ib_layout = QVBoxLayout(icon_box)
             ib_layout.setContentsMargins(0, 0, 0, 0)
             ib_lbl = QLabel()
-            ib_lbl.setPixmap(get_svg_pixmap("terminal", "#2196f3", 16))
+            ib_lbl.setPixmap(get_svg_pixmap("terminal", f"{self.palette.accent}", 16))
             ib_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             ib_lbl.setStyleSheet("background: transparent; border: none;")
             ib_layout.addWidget(ib_lbl)
@@ -1064,15 +1138,15 @@ class LinkedInPage(QWidget):
             info_box = QVBoxLayout()
             info_box.setSpacing(2)
             title_lbl = QLabel(proj.get("title") or "")
-            title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
+            title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
             desc_lbl = QLabel(proj.get("description") or "")
-            desc_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+            desc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
             info_box.addWidget(title_lbl)
             info_box.addWidget(desc_lbl)
             card_layout.addLayout(info_box, stretch=1)
 
             del_btn = QPushButton()
-            del_btn.setIcon(get_svg_icon("delete", "#94a3b8", 14))
+            del_btn.setIcon(get_svg_icon("delete", f"{self.palette.fg_muted}", 14))
             del_btn.setFixedSize(22, 22)
             del_btn.setStyleSheet("""
                 QPushButton {
@@ -1094,7 +1168,9 @@ class LinkedInPage(QWidget):
         if dialog.exec():
             data = dialog.get_data()
             if data["title"]:
-                self.repo.add_linkedin_project(data["title"], data["description"])
+                pid = self.repo.add_linkedin_project(data["title"], data["description"])
+                if pid and hasattr(dialog, 'media_widget'):
+                    dialog.media_widget.save_pending_files(pid)
                 self.load_projects()
 
     def delete_project(self, proj_id):
@@ -1111,7 +1187,7 @@ class LinkedInPage(QWidget):
         languages = self.repo.get_linkedin_languages()
         if not languages:
             empty = QLabel("No spoken languages specified.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
             self.lang_flow_layout.addWidget(empty)
             return
 
@@ -1145,7 +1221,7 @@ class LinkedInPage(QWidget):
         skills = self.repo.get_linkedin_skills()
         if not skills:
             empty = QLabel("No LinkedIn skills listed.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
             self.skill_flow_layout.addWidget(empty)
             return
 
@@ -1181,14 +1257,14 @@ class LinkedInPage(QWidget):
             """)
             lbl_color = "#99cbff"
         else:
-            tag.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            tag.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 6px;
-                }
+                }}
             """)
-            lbl_color = "#f1f5f9"
+            lbl_color = f"{self.palette.fg_primary}"
 
         layout = QHBoxLayout(tag)
         layout.setContentsMargins(8, 4, 8, 4)
@@ -1199,7 +1275,7 @@ class LinkedInPage(QWidget):
         layout.addWidget(lbl)
 
         del_btn = QPushButton()
-        del_btn.setIcon(get_svg_icon("close", "#94a3b8", 12))
+        del_btn.setIcon(get_svg_icon("close", f"{self.palette.fg_muted}", 12))
         del_btn.setFixedSize(14, 14)
         del_btn.setStyleSheet("""
             QPushButton {

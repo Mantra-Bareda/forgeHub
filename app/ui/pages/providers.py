@@ -1,13 +1,15 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QScrollArea, QFrame, QMessageBox, QCheckBox,
-    QGridLayout, QGraphicsOpacityEffect
+    QGridLayout, QGraphicsOpacityEffect, QSizePolicy
 )
 from PySide6.QtCore import Qt, QThread, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QGuiApplication
 from database.repository import ProviderRepository
 from providers import get_provider
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 
 
 def setup_page_animation(widget: QWidget):
@@ -67,14 +69,7 @@ class SlotWidget(QFrame):
         self.on_test = on_test
         self.on_remove = on_remove
         self.on_manage_models = on_manage_models
-
-        self.setStyleSheet("""
-            SlotWidget {
-                background-color: #0c0e14;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-        """)
+        self.palette = get_current_palette()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 14, 16, 14)
@@ -86,30 +81,15 @@ class SlotWidget(QFrame):
 
         self.enable_cb = QCheckBox()
         self.enable_cb.setChecked(slot_data.get("enabled", 1) == 1)
-        self.enable_cb.setStyleSheet("""
-            QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-                border-radius: 4px;
-                border: 1px solid #334155;
-                background-color: #131b2a;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #2196f3;
-                border-color: #2196f3;
-            }
-        """)
         top_line.addWidget(self.enable_cb)
 
         slot_title = f"Slot {slot} • {'Production Primary' if slot == 1 else 'Secondary Failover'}"
-        title_lbl = QLabel(slot_title)
-        title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
-        top_line.addWidget(title_lbl)
+        self.title_lbl = QLabel(slot_title)
+        top_line.addWidget(self.title_lbl)
 
         route_type = "Default Routing" if slot == 1 else "Failover Target"
-        rt_lbl = QLabel(route_type)
-        rt_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 10px; background-color: #131b2a; border: 1px solid #1e293b; border-radius: 4px; padding: 2px 6px;")
-        top_line.addWidget(rt_lbl)
+        self.rt_lbl = QLabel(route_type)
+        top_line.addWidget(self.rt_lbl)
 
         top_line.addStretch()
 
@@ -127,26 +107,11 @@ class SlotWidget(QFrame):
         # Custom Label
         name_box = QVBoxLayout()
         name_box.setSpacing(4)
-        n_lbl = QLabel("Custom Key Label")
-        n_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
-        name_box.addWidget(n_lbl)
+        self.n_lbl = QLabel("Custom Key Label")
+        name_box.addWidget(self.n_lbl)
 
         self.name_input = QLineEdit()
         self.name_input.setText(slot_data.get("display_name") or f"{provider_name}-Key-{slot}")
-        self.name_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-family: 'Inter', sans-serif;
-                font-size: 12px;
-                padding: 6px 10px;
-            }
-            QLineEdit:focus {
-                border-color: #2196f3;
-            }
-        """)
         name_box.addWidget(self.name_input)
         inputs_row.addLayout(name_box, stretch=1)
 
@@ -155,29 +120,17 @@ class SlotWidget(QFrame):
         key_box.setSpacing(4)
 
         k_head = QHBoxLayout()
-        k_lbl = QLabel("API Secret Key")
-        k_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
-        k_head.addWidget(k_lbl)
+        self.k_lbl = QLabel("API Secret Key")
+        k_head.addWidget(self.k_lbl)
         k_head.addStretch()
 
         last_tested = slot_data.get("last_tested") or "Never tested"
         self.tested_lbl = QLabel(f"Last tested: {last_tested[:19] if len(last_tested) > 19 else last_tested}")
-        self.tested_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 10px; background: transparent; border: none;")
         k_head.addWidget(self.tested_lbl)
         key_box.addLayout(k_head)
 
-        key_frame = QFrame()
-        key_frame.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 6px;
-            }
-            QFrame:focus-within {
-                border-color: #2196f3;
-            }
-        """)
-        kf_lay = QHBoxLayout(key_frame)
+        self.key_frame = QFrame()
+        kf_lay = QHBoxLayout(self.key_frame)
         kf_lay.setContentsMargins(10, 0, 6, 0)
         kf_lay.setSpacing(4)
 
@@ -190,88 +143,164 @@ class SlotWidget(QFrame):
             self.key_input.setText(api_key)
 
         self.key_input.setPlaceholderText("Enter provider API secret key...")
-        self.key_input.setStyleSheet("background: transparent; border: none; color: #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 6px 0;")
         kf_lay.addWidget(self.key_input)
 
         self.show_key_btn = QPushButton()
-        self.show_key_btn.setIcon(get_svg_icon("visibility" if "visibility" in get_svg_icon.__name__ else "description", "#94a3b8", 14))
         self.show_key_btn.setFixedSize(22, 22)
-        self.show_key_btn.setStyleSheet("background: transparent; border: none;")
         self.show_key_btn.setToolTip("Toggle Visibility")
         self.show_key_btn.clicked.connect(self.toggle_password_visibility)
         kf_lay.addWidget(self.show_key_btn)
 
-        copy_btn = QPushButton()
-        copy_btn.setIcon(get_svg_icon("content_copy", "#94a3b8", 14))
-        copy_btn.setFixedSize(22, 22)
-        copy_btn.setStyleSheet("background: transparent; border: none;")
-        copy_btn.setToolTip("Copy API Key")
-        copy_btn.clicked.connect(self.copy_key)
-        kf_lay.addWidget(copy_btn)
+        self.copy_btn = QPushButton()
+        self.copy_btn.setFixedSize(22, 22)
+        self.copy_btn.setToolTip("Copy API Key")
+        self.copy_btn.clicked.connect(self.copy_key)
+        kf_lay.addWidget(self.copy_btn)
 
-        key_box.addWidget(key_frame)
+        key_box.addWidget(self.key_frame)
         inputs_row.addLayout(key_box, stretch=2)
+
+        self.name_input.setMinimumWidth(0)
+        self.key_input.setMinimumWidth(0)
+        self.key_frame.setMinimumWidth(0)
 
         layout.addLayout(inputs_row)
 
-        # Bottom Actions Bar
-        actions_bar = QHBoxLayout()
-        actions_bar.setSpacing(10)
-
-        # Models badge
+        # Models info badge on its own dedicated row to prevent horizontal expansion
         key_id = slot_data.get("id")
         self.models_lbl = QLabel()
-        self.models_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
-        actions_bar.addWidget(self.models_lbl)
+        self.models_lbl.setWordWrap(True)
+        self.models_lbl.setMinimumWidth(1)
+        layout.addWidget(self.models_lbl)
+
+        # Bottom Actions Bar
+        actions_bar = QHBoxLayout()
+        actions_bar.setSpacing(8)
         actions_bar.addStretch()
 
+        self.manage_models_btn = None
+        self.remove_btn = None
         if key_id:
-            manage_models_btn = QPushButton(" Manage Models")
-            manage_models_btn.setIcon(get_svg_icon("tune", "#94a3b8", 12))
-            manage_models_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #131b2a;
-                    border: 1px solid #1e293b;
+            self.manage_models_btn = QPushButton(" Manage Models")
+            self.manage_models_btn.clicked.connect(lambda: self.on_manage_models(key_id, slot))
+            actions_bar.addWidget(self.manage_models_btn)
+
+            self.remove_btn = QPushButton(" Remove")
+            self.remove_btn.clicked.connect(lambda: self.on_remove(self.provider_name, slot, key_id))
+            actions_bar.addWidget(self.remove_btn)
+
+        self.test_btn = QPushButton(" Test && Save")
+        self.test_btn.clicked.connect(self.trigger_test)
+        actions_bar.addWidget(self.test_btn)
+
+        layout.addLayout(actions_bar)
+
+        self.apply_theme_colors(self.palette)
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.setStyleSheet(f"""
+            SlotWidget {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 10px;
+            }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+                border: 1px solid {self.palette.border_subtle};
+                background-color: {self.palette.bg_input};
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {self.palette.accent};
+                border-color: {self.palette.accent};
+            }}
+        """)
+        self.title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
+        self.rt_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 10px; background-color: {self.palette.bg_input}; border: 1px solid {self.palette.border_card}; border-radius: 4px; padding: 2px 6px;")
+        
+        # We need to re-call update_status_badge to refresh its colors
+        self.update_status_badge(self.status_badge.text())
+
+        self.n_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+        self.name_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 6px;
+                color: {self.palette.fg_primary};
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                padding: 6px 10px;
+            }}
+            QLineEdit:focus {{
+                border-color: {self.palette.accent};
+            }}
+        """)
+        self.k_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+        self.tested_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 10px; background: transparent; border: none;")
+        
+        self.key_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 6px;
+            }}
+            QFrame:focus-within {{
+                border-color: {self.palette.accent};
+            }}
+        """)
+        self.key_input.setStyleSheet(f"background: transparent; border: none; color: {self.palette.fg_primary}; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 6px 0;")
+        
+        self.show_key_btn.setIcon(get_svg_icon("visibility" if "visibility" in get_svg_icon.__name__ else "description", pal.fg_muted, 14))
+        self.show_key_btn.setStyleSheet("background: transparent; border: none;")
+        self.copy_btn.setIcon(get_svg_icon("content_copy", pal.fg_muted, 14))
+        self.copy_btn.setStyleSheet("background: transparent; border: none;")
+        
+        self.models_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+        
+        if self.manage_models_btn:
+            self.manage_models_btn.setIcon(get_svg_icon("tune", pal.fg_muted, 12))
+            self.manage_models_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.bg_input};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 6px;
-                    color: #f1f5f9;
+                    color: {self.palette.fg_primary};
                     font-family: 'Inter', sans-serif;
                     font-size: 11px;
                     font-weight: 500;
                     padding: 5px 10px;
-                }
-                QPushButton:hover {
-                    border-color: #2196f3;
-                }
+                }}
+                QPushButton:hover {{
+                    border-color: {self.palette.accent};
+                }}
             """)
-            manage_models_btn.clicked.connect(lambda: self.on_manage_models(key_id, slot))
-            actions_bar.addWidget(manage_models_btn)
-
-            remove_btn = QPushButton(" Remove")
-            remove_btn.setIcon(get_svg_icon("delete", "#94a3b8", 12))
-            remove_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #131b2a;
-                    border: 1px solid #1e293b;
+        
+        if self.remove_btn:
+            self.remove_btn.setIcon(get_svg_icon("delete", pal.fg_muted, 12))
+            self.remove_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.bg_input};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 6px;
-                    color: #94a3b8;
+                    color: {self.palette.fg_muted};
                     font-family: 'Inter', sans-serif;
                     font-size: 11px;
                     padding: 5px 10px;
-                }
-                QPushButton:hover {
+                }}
+                QPushButton:hover {{
                     background-color: rgba(239, 68, 68, 0.15);
                     border-color: rgba(239, 68, 68, 0.4);
                     color: #f87171;
-                }
+                }}
             """)
-            remove_btn.clicked.connect(lambda: self.on_remove(self.provider_name, slot, key_id))
-            actions_bar.addWidget(remove_btn)
-
-        self.test_btn = QPushButton(" Test && Save")
+        
         self.test_btn.setIcon(get_svg_icon("sync", "#ffffff", 12))
-        self.test_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        self.test_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 6px;
                 color: #ffffff;
@@ -279,25 +308,22 @@ class SlotWidget(QFrame):
                 font-size: 11px;
                 font-weight: 600;
                 padding: 6px 14px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-            QPushButton:disabled {
-                background-color: #1e293b;
-                color: #64748b;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.accent};
+            }}
+            QPushButton:disabled {{
+                background-color: {self.palette.border_card};
+                color: {self.palette.fg_muted};
+            }}
         """)
-        self.test_btn.clicked.connect(self.trigger_test)
-        actions_bar.addWidget(self.test_btn)
-
-        layout.addLayout(actions_bar)
 
     def update_status_badge(self, text: str):
+        pal = self.palette
         if "Valid" in text or "Connected" in text:
             self.status_badge.setText(" Connected & Verified")
-            self.status_badge.setStyleSheet("""
-                color: #4edea3;
+            self.status_badge.setStyleSheet(f"""
+                color: {self.palette.success};
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 11px;
                 font-weight: 600;
@@ -332,12 +358,12 @@ class SlotWidget(QFrame):
             """)
         else:
             self.status_badge.setText(" Not Configured")
-            self.status_badge.setStyleSheet("""
-                color: #64748b;
+            self.status_badge.setStyleSheet(f"""
+                color: {self.palette.fg_muted};
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 11px;
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 4px;
                 padding: 2px 8px;
             """)
@@ -385,14 +411,7 @@ class ProviderCard(QFrame):
         self.test_callback = test_callback
         self.remove_callback = remove_callback
         self.models_callback = models_callback
-
-        self.setStyleSheet("""
-            ProviderCard {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 12px;
-            }
-        """)
+        self.palette = get_current_palette()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 16, 18, 16)
@@ -402,63 +421,41 @@ class ProviderCard(QFrame):
         head = QHBoxLayout()
         head.setSpacing(12)
 
-        icon_box = QFrame()
-        icon_box.setFixedSize(36, 36)
-        icon_box.setStyleSheet("background-color: #0c0e14; border: 1px solid #1e293b; border-radius: 8px;")
-        ib_lay = QVBoxLayout(icon_box)
+        self.icon_box = QFrame()
+        self.icon_box.setFixedSize(36, 36)
+        ib_lay = QVBoxLayout(self.icon_box)
         ib_lay.setContentsMargins(0, 0, 0, 0)
-        i_lbl = QLabel()
-        i_lbl.setPixmap(get_svg_pixmap("auto_fix_high" if provider_data["name"] == "Gemini" else "speed", "#2196f3", 18))
-        i_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        i_lbl.setStyleSheet("background: transparent; border: none;")
-        ib_lay.addWidget(i_lbl)
-        head.addWidget(icon_box)
+        self.i_lbl = QLabel()
+        self.i_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.i_lbl.setStyleSheet("background: transparent; border: none;")
+        ib_lay.addWidget(self.i_lbl)
+        head.addWidget(self.icon_box)
 
         title_box = QVBoxLayout()
         title_box.setSpacing(2)
         p_row = QHBoxLayout()
         p_row.setSpacing(8)
 
-        p_name = QLabel(provider_data["name"])
-        p_name.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; background: transparent; border: none;")
-        p_row.addWidget(p_name)
+        self.p_name = QLabel(provider_data["name"])
+        p_row.addWidget(self.p_name)
 
-        tier_pill = QLabel("Active Router Tier")
-        tier_pill.setStyleSheet("""
-            color: #99cbff;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            background-color: rgba(33, 150, 243, 0.15);
-            border: 1px solid rgba(33, 150, 243, 0.3);
-            border-radius: 4px;
-            padding: 1px 6px;
-        """)
-        p_row.addWidget(tier_pill)
+        self.tier_pill = QLabel("Active Router Tier")
+        p_row.addWidget(self.tier_pill)
         p_row.addStretch()
         title_box.addLayout(p_row)
 
         desc = self.get_provider_description(provider_data["name"])
-        desc_lbl = QLabel(desc)
-        desc_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
-        title_box.addWidget(desc_lbl)
-        head.addLayout(title_box)
-
-        head.addStretch()
+        self.desc_lbl = QLabel(desc)
+        self.desc_lbl.setWordWrap(True)
+        self.desc_lbl.setMinimumWidth(1)
+        title_box.addWidget(self.desc_lbl)
+        head.addLayout(title_box, stretch=1)
 
         # Count active keys
         active_count = sum(1 for k in provider_data.get("keys", {}).values() if k.get("status") and "Connected" in k.get("status"))
-        active_badge = QLabel(f"{active_count} of 2 Keys Active")
-        active_badge.setStyleSheet("""
-            color: #4edea3;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            font-weight: 600;
-            background-color: rgba(78, 222, 163, 0.1);
-            border: 1px solid rgba(78, 222, 163, 0.3);
-            border-radius: 12px;
-            padding: 4px 10px;
-        """)
-        head.addWidget(active_badge)
+        self.active_badge = QLabel(f"{active_count} of 2 Keys Active")
+        self.active_badge.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
+        head.addWidget(self.active_badge)
 
         layout.addLayout(head)
 
@@ -486,6 +483,42 @@ class ProviderCard(QFrame):
             self.slots[slot] = slot_widget
             layout.addWidget(slot_widget)
 
+        self.apply_theme_colors(self.palette)
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.setStyleSheet(f"""
+            ProviderCard {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 12px;
+            }}
+        """)
+        self.icon_box.setStyleSheet(f"background-color: {self.palette.bg_app}; border: 1px solid {self.palette.border_card}; border-radius: 8px;")
+        self.i_lbl.setPixmap(get_svg_pixmap("auto_fix_high" if self.provider_data["name"] == "Gemini" else "speed", pal.accent, 18))
+        
+        self.p_name.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; background: transparent; border: none;")
+        self.tier_pill.setStyleSheet(f"""
+            color: #99cbff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            background-color: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 4px;
+            padding: 1px 6px;
+        """)
+        self.desc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+        self.active_badge.setStyleSheet(f"""
+            color: {self.palette.success};
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            background-color: rgba(78, 222, 163, 0.1);
+            border: 1px solid rgba(78, 222, 163, 0.3);
+            border-radius: 12px;
+            padding: 4px 10px;
+        """)
+
     def manage_models(self, key_id: int, slot: int):
         from app.ui.components.model_dialog import ModelManagementDialog
         dlg = ModelManagementDialog(self.provider_data["name"], key_id, self.db, self)
@@ -510,6 +543,7 @@ class AIProvidersPage(QWidget):
         super().__init__()
         self.db = db_manager
         self.repo = ProviderRepository(self.db)
+        self.palette = get_current_palette()
 
         self.cards = {}
         self.active_threads = set()
@@ -520,16 +554,16 @@ class AIProvidersPage(QWidget):
         root_layout.setSpacing(0)
 
         # Scroll Area
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background-color: #0b0f17; border: none; }")
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        content = QWidget()
-        content.setStyleSheet("background-color: #0b0f17;")
-        self.layout = QVBoxLayout(content)
-        self.layout.setContentsMargins(32, 28, 32, 40)
-        self.layout.setSpacing(24)
+        self.content = QWidget()
+        self.layout = QVBoxLayout(self.content)
+        self.layout.setContentsMargins(18, 20, 18, 30)
+        self.layout.setSpacing(18)
 
         # 1. Top Action & Command Bar
         top_bar = self.create_top_bar()
@@ -544,140 +578,82 @@ class AIProvidersPage(QWidget):
         self.cards_layout.setSpacing(18)
         self.layout.addLayout(self.cards_layout)
 
-        scroll.setWidget(content)
-        root_layout.addWidget(scroll)
+        self.scroll.setWidget(self.content)
+        root_layout.addWidget(self.scroll)
+
+        self.apply_theme_colors(self.palette)
 
         self.load_providers()
         setup_page_animation(self)
 
-    def create_top_bar(self) -> QHBoxLayout:
-        bar = QHBoxLayout()
-        bar.setSpacing(16)
+    def create_top_bar(self) -> QVBoxLayout:
+        bar = QVBoxLayout()
+        bar.setSpacing(8)
 
-        title_box = QVBoxLayout()
-        title_box.setSpacing(4)
+        top_row = QHBoxLayout()
+        top_row.setSpacing(10)
 
-        top_title = QHBoxLayout()
-        top_title.setSpacing(8)
+        self.icon_lbl = QLabel()
+        self.icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.icon_lbl.setStyleSheet("background: transparent; border: none;")
+        top_row.addWidget(self.icon_lbl)
 
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(get_svg_pixmap("hub", "#2196f3", 22))
-        icon_lbl.setStyleSheet("background: transparent; border: none;")
-        top_title.addWidget(icon_lbl)
+        self.title_lbl = QLabel("AI Providers & API Keys")
+        top_row.addWidget(self.title_lbl)
 
-        title = QLabel("AI Providers & API Keys")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; background: transparent; border: none;")
-        top_title.addWidget(title)
+        self.routing_pill = QLabel("Multi-Agent Routing")
+        top_row.addWidget(self.routing_pill)
+        top_row.addStretch()
 
-        routing_pill = QLabel("Multi-Agent Routing v4.2")
-        routing_pill.setStyleSheet("""
-            color: #94a3b8;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            background-color: #131b2a;
-            border: 1px solid #1e293b;
-            border-radius: 12px;
-            padding: 2px 8px;
-        """)
-        top_title.addWidget(routing_pill)
-        top_title.addStretch()
-        title_box.addLayout(top_title)
+        bar.addLayout(top_row)
 
-        sub_lbl = QLabel("Configure API credentials, secondary failover channels, and monitor runtime token usage across model instances.")
-        sub_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
-        title_box.addWidget(sub_lbl)
-        bar.addLayout(title_box)
+        sub_row = QHBoxLayout()
+        sub_row.setSpacing(10)
 
-        bar.addStretch()
+        self.sub_lbl = QLabel("Configure API credentials, secondary failover channels, and monitor runtime token usage across model instances.")
+        self.sub_lbl.setWordWrap(True)
+        self.sub_lbl.setMinimumWidth(1)
+        sub_row.addWidget(self.sub_lbl, stretch=1)
 
         # Action Buttons
-        test_all_btn = QPushButton(" Test All Connections")
-        test_all_btn.setIcon(get_svg_icon("sync", "#94a3b8", 14))
-        test_all_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 8px;
-                color: #f1f5f9;
-                font-family: 'Inter', sans-serif;
-                font-size: 12px;
-                font-weight: 500;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
-        """)
-        test_all_btn.clicked.connect(self.verify_all_keys)
-        bar.addWidget(test_all_btn)
+        self.test_all_btn = QPushButton(" Test All")
+        self.test_all_btn.clicked.connect(self.verify_all_keys)
+        sub_row.addWidget(self.test_all_btn)
 
-        detailed_btn = QPushButton(" Detailed Model Statistics")
-        detailed_btn.setIcon(get_svg_icon("analytics", "#ffffff", 14))
-        detailed_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                border: none;
-                border-radius: 8px;
-                color: #ffffff;
-                font-family: 'Inter', sans-serif;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-        """)
-        detailed_btn.clicked.connect(self.show_detailed_stats)
-        bar.addWidget(detailed_btn)
+        self.detailed_btn = QPushButton(" Model Statistics")
+        self.detailed_btn.clicked.connect(self.show_detailed_stats)
+        sub_row.addWidget(self.detailed_btn)
+
+        bar.addLayout(sub_row)
 
         return bar
 
     def create_telemetry_panel(self) -> QFrame:
         panel = QFrame()
-        panel.setStyleSheet("""
-            QFrame {
-                background-color: #0e131f;
-                border: 1px solid #1e293b;
-                border-radius: 12px;
-            }
-        """)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(14)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(12)
 
         # Header
         head = QHBoxLayout()
-        dot = QFrame()
-        dot.setFixedSize(8, 8)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 4px;")
-        head.addWidget(dot)
+        self.dot = QFrame()
+        self.dot.setFixedSize(8, 8)
+        head.addWidget(self.dot)
 
-        h_lbl = QLabel("AI API Usage Statistics")
-        h_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
-        head.addWidget(h_lbl)
+        self.h_lbl = QLabel("AI API Usage Statistics")
+        head.addWidget(self.h_lbl)
 
-        telemetry_pill = QLabel("Telemetry: Streaming")
-        telemetry_pill.setStyleSheet("""
-            color: #4edea3;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            background-color: rgba(78, 222, 163, 0.1);
-            border: 1px solid rgba(78, 222, 163, 0.3);
-            border-radius: 4px;
-            padding: 1px 6px;
-        """)
-        head.addWidget(telemetry_pill)
+        self.telemetry_pill = QLabel("Telemetry: Streaming")
+        head.addWidget(self.telemetry_pill)
         head.addStretch()
 
-        win_lbl = QLabel("Window: Rolling 24h")
-        win_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
-        head.addWidget(win_lbl)
+        self.win_lbl = QLabel("Window: Rolling 24h")
+        head.addWidget(self.win_lbl)
         layout.addLayout(head)
 
-        # 5 Metrics Grid
+        # 5 Metrics Grid (arranged across max 3 columns)
         self.stats_grid = QGridLayout()
-        self.stats_grid.setSpacing(12)
+        self.stats_grid.setSpacing(10)
 
         self.stat_cards = {}
         metrics_def = [
@@ -688,48 +664,156 @@ class AIProvidersPage(QWidget):
             ("comp_tokens", "Completion Tokens", "arrow_back", "0", "Avg 92 tok/req")
         ]
 
+        # To support dynamic theming of stat cards, we need references
+        self.stat_card_frames = []
+        self.stat_card_icons = []
+        self.stat_card_titles = []
+        self.stat_card_vals = []
+        self.stat_card_subs = []
+
         for idx, (key, title, icon, val, sub) in enumerate(metrics_def):
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #131b2a;
-                    border: 1px solid #1e293b;
-                    border-radius: 8px;
-                    padding: 12px;
-                }
-                QFrame:hover {
-                    border-color: rgba(33, 150, 243, 0.4);
-                }
-            """)
+            card.setMinimumWidth(0)
+            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            self.stat_card_frames.append(card)
+            
             c_lay = QVBoxLayout(card)
-            c_lay.setContentsMargins(12, 10, 12, 10)
-            c_lay.setSpacing(6)
+            c_lay.setContentsMargins(10, 8, 10, 8)
+            c_lay.setSpacing(4)
 
             c_head = QHBoxLayout()
             c_title = QLabel(title)
-            c_title.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
-            c_head.addWidget(c_title)
-            c_head.addStretch()
+            c_title.setWordWrap(True)
+            c_title.setMinimumWidth(1)
+            self.stat_card_titles.append(c_title)
+            c_head.addWidget(c_title, stretch=1)
 
             c_icon = QLabel()
-            c_icon.setPixmap(get_svg_pixmap(icon, "#64748b", 16))
-            c_icon.setStyleSheet("background: transparent; border: none;")
+            # Storing the icon name to dynamically set it
+            c_icon.setProperty("icon_name", icon)
+            self.stat_card_icons.append(c_icon)
             c_head.addWidget(c_icon)
             c_lay.addLayout(c_head)
 
             val_lbl = QLabel(val)
-            val_lbl.setStyleSheet("color: #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; background: transparent; border: none;")
+            self.stat_card_vals.append(val_lbl)
             c_lay.addWidget(val_lbl)
 
             sub_lbl = QLabel(sub)
-            sub_lbl.setStyleSheet("color: #4edea3 if 'vs' in sub else #64748b; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+            sub_lbl.setWordWrap(True)
+            sub_lbl.setMinimumWidth(1)
+            sub_lbl.setProperty("is_positive", 'vs' in sub)
+            self.stat_card_subs.append(sub_lbl)
             c_lay.addWidget(sub_lbl)
 
             self.stat_cards[key] = (val_lbl, sub_lbl)
-            self.stats_grid.addWidget(card, 0, idx)
+            self.stats_grid.addWidget(card, idx // 3, idx % 3)
 
         layout.addLayout(self.stats_grid)
         return panel
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.scroll.setStyleSheet(f"QScrollArea {{ background-color: {self.palette.bg_app}; border: none; }}")
+        self.content.setStyleSheet(f"background-color: {self.palette.bg_app};")
+        
+        self.icon_lbl.setPixmap(get_svg_pixmap("hub", pal.accent, 22))
+        self.title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; background: transparent; border: none;")
+        self.routing_pill.setStyleSheet(f"""
+            color: {self.palette.fg_muted};
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            background-color: {self.palette.bg_card};
+            border: 1px solid {self.palette.border_card};
+            border-radius: 10px;
+            padding: 2px 8px;
+        """)
+        self.sub_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+        
+        self.test_all_btn.setIcon(get_svg_icon("sync", pal.fg_muted, 12))
+        self.test_all_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 6px;
+                color: {self.palette.fg_primary};
+                font-family: 'Inter', sans-serif;
+                font-size: 11px;
+                font-weight: 500;
+                padding: 6px 12px;
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
+        """)
+        
+        self.detailed_btn.setIcon(get_svg_icon("analytics", "#ffffff", 12))
+        self.detailed_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
+                border: none;
+                border-radius: 6px;
+                color: #ffffff;
+                font-family: 'Inter', sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 6px 12px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.accent};
+            }}
+        """)
+        
+        self.telemetry_panel.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 12px;
+            }}
+        """)
+        
+        self.dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 4px;")
+        self.h_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+        self.telemetry_pill.setStyleSheet(f"""
+            color: {self.palette.success};
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            background-color: rgba(78, 222, 163, 0.1);
+            border: 1px solid rgba(78, 222, 163, 0.3);
+            border-radius: 4px;
+            padding: 1px 6px;
+        """)
+        self.win_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        
+        for frame in self.stat_card_frames:
+            frame.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_card};
+                    border: 1px solid {self.palette.border_card};
+                    border-radius: 8px;
+                    padding: 10px;
+                }}
+                QFrame:hover {{
+                    border-color: {self.palette.accent};
+                }}
+            """)
+            
+        for icon_lbl in self.stat_card_icons:
+            icon_name = icon_lbl.property("icon_name")
+            icon_lbl.setPixmap(get_svg_pixmap(icon_name, pal.fg_muted, 16))
+            icon_lbl.setStyleSheet("background: transparent; border: none;")
+            
+        for t_lbl in self.stat_card_titles:
+            t_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+            
+        for v_lbl in self.stat_card_vals:
+            v_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; background: transparent; border: none;")
+            
+        for s_lbl in self.stat_card_subs:
+            is_pos = s_lbl.property("is_positive")
+            color = pal.success if is_pos else pal.fg_muted
+            s_lbl.setStyleSheet(f"color: {color}; font-family: 'Inter', sans-serif; font-size: 10px; background: transparent; border: none;")
+
 
     def load_providers(self):
         # Clear cards

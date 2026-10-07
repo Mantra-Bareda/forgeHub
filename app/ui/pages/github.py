@@ -1,4 +1,6 @@
 import json
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, QMessageBox,
     QLineEdit, QScrollArea, QDialog, QHBoxLayout, QFrame,
@@ -9,6 +11,8 @@ from database.repository import ProfileRepository
 from app.ui.components.flow_layout import FlowLayout
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
 from app.ui.pages.chat import AIChatPage
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 
 
 def setup_page_animation(widget: QWidget):
@@ -28,39 +32,42 @@ class ModernDialog(QDialog):
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.apply_theme_colors(get_current_palette())
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: {pal.bg_card};
+                border: 1px solid {pal.border_card};
                 border-radius: 12px;
-            }
-            QLabel {
-                color: #94a3b8;
+            }}
+            QLabel {{
+                color: {pal.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 500;
                 background: transparent;
                 border: none;
-            }
-            QLineEdit, QTextEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+            }}
+            QLineEdit, QTextEdit {{
+                background-color: {pal.bg_input};
+                border: 1px solid {pal.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {pal.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 8px 12px;
-            }
-            QLineEdit:focus, QTextEdit:focus {
-                border: 1px solid #2196f3;
-            }
-            QPushButton {
+            }}
+            QLineEdit:focus, QTextEdit:focus {{
+                border: 1px solid {pal.accent};
+            }}
+            QPushButton {{
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 border-radius: 8px;
                 padding: 8px 16px;
-            }
+            }}
         """)
 
 
@@ -96,12 +103,12 @@ class AddRepoDialog(ModernDialog):
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Add Repository")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -148,12 +155,12 @@ class AddContributionDialog(ModernDialog):
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Add Contribution")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -205,12 +212,12 @@ class AddPinnedRepoDialog(ModernDialog):
         buttons = QHBoxLayout()
         buttons.addStretch()
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet("background-color: #1e293b; color: #94a3b8; border: none;")
+        cancel_btn.setStyleSheet(f"background-color: {get_current_palette().bg_app}; color: {get_current_palette().fg_muted}; border: none;")
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
         save_btn = QPushButton("Pin Repository")
-        save_btn.setStyleSheet("background-color: #2196f3; color: #ffffff; border: none;")
+        save_btn.setStyleSheet(f"background-color: {get_current_palette().accent}; color: #ffffff; border: none;")
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
         layout.addLayout(buttons)
@@ -235,6 +242,7 @@ class GitHubPage(QWidget):
         self.skills = []
         self.pinned_repos = []
 
+        self.palette = get_current_palette()
         self.stacked_widget = QStackedWidget(self)
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -253,21 +261,21 @@ class GitHubPage(QWidget):
 
         chat_top = QHBoxLayout()
         back_btn = QPushButton(" Back to GitHub Form")
-        back_btn.setIcon(get_svg_icon("arrow_back", "#94a3b8", 16))
-        back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        back_btn.setIcon(get_svg_icon("arrow_back", f"{self.palette.fg_muted}", 16))
+        back_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+            }}
         """)
         back_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
         chat_top.addWidget(back_btn)
@@ -281,6 +289,25 @@ class GitHubPage(QWidget):
         self.load_data()
         setup_page_animation(self)
 
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.setStyleSheet(f"""
+            QWidget {{ background-color: {self.palette.bg_app}; }}
+            QScrollArea {{ background-color: {self.palette.bg_app}; border: none; }}
+            QFrame {{ background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; }}
+            QLineEdit, QTextEdit {{ background-color: {self.palette.bg_input}; color: {self.palette.fg_primary}; border: 1px solid {self.palette.border_subtle}; }}
+            QLabel {{ color: {self.palette.fg_primary}; background: transparent; border: none; }}
+            QPushButton {{ background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; color: {self.palette.fg_primary}; }}
+        """)
+        for child in self.findChildren(QWidget):
+            if hasattr(child, "apply_theme_colors") and child is not self:
+                child.apply_theme_colors(pal)
+        # Re-render dynamic lists to apply new palette to inline styles
+        self.render_repositories()
+        self.render_contributions()
+        self.render_skills()
+        self.render_pinned()
+
     def init_form_ui(self):
         layout = QVBoxLayout(self.form_page)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -290,10 +317,10 @@ class GitHubPage(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea { background-color: #0b0f17; border: none; }")
+        scroll.setStyleSheet(f"QScrollArea {{ background-color: {self.palette.bg_app}; border: none; }}")
 
         content = QWidget()
-        content.setStyleSheet("background-color: #0b0f17;")
+        content.setStyleSheet(f"background-color: {self.palette.bg_app};")
         self.content_layout = QVBoxLayout(content)
         self.content_layout.setContentsMargins(32, 28, 32, 100) # bottom margin for fixed tray
         self.content_layout.setSpacing(24)
@@ -340,18 +367,18 @@ class GitHubPage(QWidget):
         top_title = QHBoxLayout()
         top_title.setSpacing(8)
         term_icon = QLabel()
-        term_icon.setPixmap(get_svg_pixmap("terminal", "#2196f3", 24))
+        term_icon.setPixmap(get_svg_pixmap("terminal", f"{self.palette.accent}", 24))
         term_icon.setStyleSheet("background: transparent; border: none;")
         top_title.addWidget(term_icon)
 
         title_lbl = QLabel("GitHub Integration")
-        title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 700; background: transparent; border: none;")
+        title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 700; background: transparent; border: none;")
         top_title.addWidget(title_lbl)
         top_title.addStretch()
         title_box.addLayout(top_title)
 
         sub_lbl = QLabel("Manage your GitHub identity, synchronized repositories, featured codebases, and technical skills.")
-        sub_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+        sub_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
         title_box.addWidget(sub_lbl)
         bar.addLayout(title_box)
 
@@ -359,13 +386,13 @@ class GitHubPage(QWidget):
 
         # Right Pill & Action
         self.conn_pill = QFrame()
-        self.conn_pill.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.conn_pill.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
                 padding: 4px 12px;
-            }
+            }}
         """)
         pill_layout = QHBoxLayout(self.conn_pill)
         pill_layout.setContentsMargins(8, 4, 10, 4)
@@ -373,19 +400,19 @@ class GitHubPage(QWidget):
 
         dot = QFrame()
         dot.setFixedSize(8, 8)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 4px;")
+        dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 4px;")
         pill_layout.addWidget(dot)
 
         self.conn_text = QLabel("API Connected: @profile")
-        self.conn_text.setStyleSheet("color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.conn_text.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         pill_layout.addWidget(self.conn_text)
         bar.addWidget(self.conn_pill)
 
         chat_btn = QPushButton(" Open GitHub AI Chat")
         chat_btn.setIcon(get_svg_icon("chat", "#ffffff", 16))
-        chat_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        chat_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 8px;
                 color: #ffffff;
@@ -393,10 +420,10 @@ class GitHubPage(QWidget):
                 font-size: 13px;
                 font-weight: 600;
                 padding: 9px 18px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #1e88e5;
-            }
+            }}
         """)
         chat_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(1))
         bar.addWidget(chat_btn)
@@ -405,12 +432,12 @@ class GitHubPage(QWidget):
 
     def create_card_frame(self) -> QFrame:
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 14px;
-            }
+            }}
         """)
         return card
 
@@ -424,17 +451,17 @@ class GitHubPage(QWidget):
         # Header
         head = QHBoxLayout()
         badge_lbl = QLabel()
-        badge_lbl.setPixmap(get_svg_pixmap("badge", "#2196f3", 20))
+        badge_lbl.setPixmap(get_svg_pixmap("badge", f"{self.palette.accent}", 20))
         badge_lbl.setStyleSheet("background: transparent; border: none;")
         head.addWidget(badge_lbl)
 
         title = QLabel("GitHub Identity")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         head.addWidget(title)
         head.addStretch()
 
         meta_lbl = QLabel("Core Metadata")
-        meta_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        meta_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         head.addWidget(meta_lbl)
         layout.addLayout(head)
 
@@ -446,29 +473,29 @@ class GitHubPage(QWidget):
         user_box = QVBoxLayout()
         user_box.setSpacing(6)
         user_lbl = QLabel("USERNAME / VANITY URL")
-        user_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        user_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         user_box.addWidget(user_lbl)
 
         user_frame = QFrame()
-        user_frame.setStyleSheet("""
-            QFrame {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        user_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-            }
-            QFrame:focus-within {
-                border: 1px solid #2196f3;
-            }
+            }}
+            QFrame:focus-within {{
+                border: 1px solid {self.palette.accent};
+            }}
         """)
         u_lay = QHBoxLayout(user_frame)
         u_lay.setContentsMargins(10, 0, 10, 0)
         u_lay.setSpacing(4)
         prefix = QLabel("github.com/")
-        prefix.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 12px; background: transparent; border: none;")
+        prefix.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 12px; background: transparent; border: none;")
         u_lay.addWidget(prefix)
 
         self.username_input = QLineEdit()
-        self.username_input.setStyleSheet("background: transparent; border: none; color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 0;")
+        self.username_input.setStyleSheet(f"background: transparent; border: none; color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 0;")
         self.username_input.setPlaceholderText("your-github-handle")
         self.username_input.textChanged.connect(self.on_username_changed)
         u_lay.addWidget(self.username_input)
@@ -479,23 +506,23 @@ class GitHubPage(QWidget):
         bio_box = QVBoxLayout()
         bio_box.setSpacing(6)
         bio_lbl = QLabel("PROFESSIONAL HEADLINE / BIO")
-        bio_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        bio_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         bio_box.addWidget(bio_lbl)
 
         self.bio_input = QLineEdit()
-        self.bio_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.bio_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 8px 12px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #2196f3;
-            }
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {self.palette.accent};
+            }}
         """)
         self.bio_input.setPlaceholderText("e.g. Senior Systems Architect & Open Source Maintainer")
         bio_box.addWidget(self.bio_input)
@@ -506,24 +533,24 @@ class GitHubPage(QWidget):
         readme_box = QVBoxLayout()
         readme_box.setSpacing(6)
         readme_lbl = QLabel("ABOUT / PROFILE SUMMARY (MARKDOWN)")
-        readme_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        readme_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         readme_box.addWidget(readme_lbl)
 
         self.profile_readme_input = QTextEdit()
-        self.profile_readme_input.setStyleSheet("""
-            QTextEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.profile_readme_input.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 10px 12px;
                 line-height: 1.5;
-            }
-            QTextEdit:focus {
-                border: 1px solid #2196f3;
-            }
+            }}
+            QTextEdit:focus {{
+                border: 1px solid {self.palette.accent};
+            }}
         """)
         self.profile_readme_input.setMinimumHeight(110)
         self.profile_readme_input.setPlaceholderText("Paste your main GitHub profile markdown or summary here...")
@@ -541,31 +568,31 @@ class GitHubPage(QWidget):
 
         head = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("folder_open", "#2196f3", 20))
+        icon.setPixmap(get_svg_pixmap("folder_open", f"{self.palette.accent}", 20))
         icon.setStyleSheet("background: transparent; border: none;")
         head.addWidget(icon)
 
         title = QLabel("GitHub Repositories")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         head.addWidget(title)
         head.addStretch()
 
         add_btn = QPushButton(" Add Repository")
-        add_btn.setIcon(get_svg_icon("plus", "#f1f5f9", 14))
-        add_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        add_btn.setIcon(get_svg_icon("plus", f"{self.palette.fg_primary}", 14))
+        add_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 6px 12px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         add_btn.clicked.connect(self.prompt_add_repository)
         head.addWidget(add_btn)
@@ -586,31 +613,31 @@ class GitHubPage(QWidget):
 
         head = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("brain", "#2196f3", 20))
+        icon.setPixmap(get_svg_pixmap("brain", f"{self.palette.accent}", 20))
         icon.setStyleSheet("background: transparent; border: none;")
         head.addWidget(icon)
 
         title = QLabel("Contributions & Notable Projects")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         head.addWidget(title)
         head.addStretch()
 
         add_btn = QPushButton(" Add Contribution")
-        add_btn.setIcon(get_svg_icon("plus", "#f1f5f9", 14))
-        add_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        add_btn.setIcon(get_svg_icon("plus", f"{self.palette.fg_primary}", 14))
+        add_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 6px 12px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         add_btn.clicked.connect(self.prompt_add_contribution)
         head.addWidget(add_btn)
@@ -631,29 +658,29 @@ class GitHubPage(QWidget):
 
         head = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("code", "#2196f3", 20))
+        icon.setPixmap(get_svg_pixmap("code", f"{self.palette.accent}", 20))
         icon.setStyleSheet("background: transparent; border: none;")
         head.addWidget(icon)
 
         title = QLabel("GitHub Skills")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         head.addWidget(title)
         head.addStretch()
 
         sub_lbl = QLabel("Indexed by AI Context Engine")
-        sub_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        sub_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         head.addWidget(sub_lbl)
         layout.addLayout(head)
 
         # Tags container with input
         tags_box = QFrame()
-        tags_box.setStyleSheet("""
-            QFrame {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        tags_box.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
                 padding: 8px;
-            }
+            }}
         """)
         tb_layout = QVBoxLayout(tags_box)
         tb_layout.setContentsMargins(8, 8, 8, 8)
@@ -672,39 +699,39 @@ class GitHubPage(QWidget):
 
         self.new_skill_input = QLineEdit()
         self.new_skill_input.setPlaceholderText("Add skill (comma sep)...")
-        self.new_skill_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.new_skill_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 padding: 5px 10px;
                 min-width: 180px;
-            }
-            QLineEdit:focus {
-                border-color: #2196f3;
-            }
+            }}
+            QLineEdit:focus {{
+                border-color: {self.palette.accent};
+            }}
         """)
         self.new_skill_input.returnPressed.connect(self.add_skill_from_input)
         add_row.addWidget(self.new_skill_input)
 
         add_s_btn = QPushButton("+ Add Skill")
-        add_s_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        add_s_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 5px 12px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         add_s_btn.clicked.connect(self.add_skill_from_input)
         add_row.addWidget(add_s_btn)
@@ -722,31 +749,31 @@ class GitHubPage(QWidget):
 
         head = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("push_pin", "#2196f3", 20))
+        icon.setPixmap(get_svg_pixmap("push_pin", f"{self.palette.accent}", 20))
         icon.setStyleSheet("background: transparent; border: none;")
         head.addWidget(icon)
 
         title = QLabel("Pinned / Featured Repositories")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         head.addWidget(title)
         head.addStretch()
 
         pin_btn = QPushButton(" Pin Repository")
-        pin_btn.setIcon(get_svg_icon("push_pin", "#f1f5f9", 14))
-        pin_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        pin_btn.setIcon(get_svg_icon("push_pin", f"{self.palette.fg_primary}", 14))
+        pin_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 6px 12px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         pin_btn.clicked.connect(self.prompt_add_pinned)
         head.addWidget(pin_btn)
@@ -762,11 +789,11 @@ class GitHubPage(QWidget):
     def create_bottom_bar(self) -> QFrame:
         bar = QFrame()
         bar.setFixedHeight(64)
-        bar.setStyleSheet("""
-            QFrame {
-                background-color: #0c0e14;
-                border-top: 1px solid #1e293b;
-            }
+        bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_input};
+                border-top: 1px solid {self.palette.border_card};
+            }}
         """)
         bar_layout = QHBoxLayout(bar)
         bar_layout.setContentsMargins(32, 0, 32, 0)
@@ -775,41 +802,41 @@ class GitHubPage(QWidget):
         left_info.setSpacing(10)
         dot = QFrame()
         dot.setFixedSize(8, 8)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 4px;")
+        dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 4px;")
         left_info.addWidget(dot)
 
         txt = QLabel("All profile changes queued for automatic bi-directional GitHub API sync.")
-        txt.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+        txt.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
         left_info.addWidget(txt)
         bar_layout.addLayout(left_info)
 
         bar_layout.addStretch()
 
         discard_btn = QPushButton("Discard Changes")
-        discard_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        discard_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 padding: 8px 18px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-                color: #f1f5f9;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+                color: {self.palette.fg_primary};
+            }}
         """)
         discard_btn.clicked.connect(self.load_data)
         bar_layout.addWidget(discard_btn)
 
         save_btn = QPushButton(" Save GitHub Profile")
         save_btn.setIcon(get_svg_icon("sync", "#ffffff", 16))
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 8px;
                 color: #ffffff;
@@ -817,10 +844,10 @@ class GitHubPage(QWidget):
                 font-size: 13px;
                 font-weight: 600;
                 padding: 8px 22px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #1e88e5;
-            }
+            }}
         """)
         save_btn.clicked.connect(self.save_preferences)
         bar_layout.addWidget(save_btn)
@@ -881,21 +908,21 @@ class GitHubPage(QWidget):
 
         if not self.repositories:
             empty = QLabel("No repositories connected yet.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
             self.repos_container.addWidget(empty)
             return
 
         for idx, repo in enumerate(self.repositories):
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 8px;
-                }
-                QFrame:hover {
-                    border-color: #2196f3;
-                }
+                }}
+                QFrame:hover {{
+                    border-color: {self.palette.accent};
+                }}
             """)
             layout = QHBoxLayout(card)
             layout.setContentsMargins(16, 12, 16, 12)
@@ -907,11 +934,11 @@ class GitHubPage(QWidget):
             top_line = QHBoxLayout()
             top_line.setSpacing(10)
             name_lbl = QLabel(repo.get("name", ""))
-            name_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+            name_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
             top_line.addWidget(name_lbl)
 
             url_lbl = QLabel(repo.get("url", ""))
-            url_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            url_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             top_line.addWidget(url_lbl)
             top_line.addStretch()
             info.addLayout(top_line)
@@ -919,8 +946,9 @@ class GitHubPage(QWidget):
             desc = repo.get("description", "")
             if desc:
                 desc_lbl = QLabel(desc)
-                desc_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+                desc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
                 desc_lbl.setWordWrap(True)
+                desc_lbl.setMinimumWidth(1)
                 info.addWidget(desc_lbl)
 
             # Tags
@@ -930,12 +958,12 @@ class GitHubPage(QWidget):
                 tag_row.setSpacing(6)
                 for t in tags:
                     pill = QLabel(t)
-                    pill.setStyleSheet("""
-                        color: #4edea3;
+                    pill.setStyleSheet(f"""
+                        color: {self.palette.success};
                         font-family: 'JetBrains Mono', monospace;
                         font-size: 10px;
-                        background-color: #131b2a;
-                        border: 1px solid #1e293b;
+                        background-color: {self.palette.bg_card};
+                        border: 1px solid {self.palette.border_card};
                         border-radius: 4px;
                         padding: 2px 6px;
                     """)
@@ -946,7 +974,7 @@ class GitHubPage(QWidget):
             layout.addLayout(info, stretch=1)
 
             del_btn = QPushButton()
-            del_btn.setIcon(get_svg_icon("delete", "#94a3b8", 16))
+            del_btn.setIcon(get_svg_icon("delete", f"{self.palette.fg_muted}", 16))
             del_btn.setFixedSize(28, 28)
             del_btn.setStyleSheet("""
                 QPushButton {
@@ -984,18 +1012,18 @@ class GitHubPage(QWidget):
 
         if not self.contributions:
             empty = QLabel("No notable contributions added yet.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
             self.contribs_container.addWidget(empty)
             return
 
         for idx, contrib in enumerate(self.contributions):
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 8px;
-                }
+                }}
             """)
             layout = QVBoxLayout(card)
             layout.setContentsMargins(16, 12, 16, 12)
@@ -1003,13 +1031,13 @@ class GitHubPage(QWidget):
 
             top = QHBoxLayout()
             title_lbl = QLabel(contrib.get("title", ""))
-            title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+            title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
             top.addWidget(title_lbl)
 
             role = contrib.get("role", "Contributor")
             role_pill = QLabel(role)
-            role_pill.setStyleSheet("""
-                color: #4edea3;
+            role_pill.setStyleSheet(f"""
+                color: {self.palette.success};
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 11px;
                 background-color: rgba(78, 222, 163, 0.1);
@@ -1021,7 +1049,7 @@ class GitHubPage(QWidget):
             top.addStretch()
 
             del_btn = QPushButton()
-            del_btn.setIcon(get_svg_icon("delete", "#94a3b8", 14))
+            del_btn.setIcon(get_svg_icon("delete", f"{self.palette.fg_muted}", 14))
             del_btn.setFixedSize(22, 22)
             del_btn.setStyleSheet("""
                 QPushButton {
@@ -1040,14 +1068,15 @@ class GitHubPage(QWidget):
             desc = contrib.get("description", "")
             if desc:
                 desc_lbl = QLabel(desc)
-                desc_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+                desc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
                 desc_lbl.setWordWrap(True)
+                desc_lbl.setMinimumWidth(1)
                 layout.addWidget(desc_lbl)
 
             stack = contrib.get("tech_stack", "")
             if stack:
                 stack_lbl = QLabel(f"Tech Stack: {stack}")
-                stack_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+                stack_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
                 layout.addWidget(stack_lbl)
 
             self.contribs_container.addWidget(card)
@@ -1073,34 +1102,34 @@ class GitHubPage(QWidget):
 
         for idx, skill in enumerate(self.skills):
             chip = QFrame()
-            chip.setStyleSheet("""
-                QFrame {
-                    background-color: #131b2a;
-                    border: 1px solid #1e293b;
+            chip.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_card};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 6px;
-                }
+                }}
             """)
             chip_l = QHBoxLayout(chip)
             chip_l.setContentsMargins(8, 4, 8, 4)
             chip_l.setSpacing(6)
 
             s_lbl = QLabel(skill)
-            s_lbl.setStyleSheet("color: #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            s_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             chip_l.addWidget(s_lbl)
 
             del_btn = QPushButton("×")
-            del_btn.setStyleSheet("""
-                QPushButton {
+            del_btn.setStyleSheet(f"""
+                QPushButton {{
                     background: transparent;
                     border: none;
-                    color: #94a3b8;
+                    color: {self.palette.fg_muted};
                     font-size: 13px;
                     font-weight: bold;
                     padding: 0;
-                }
-                QPushButton:hover {
+                }}
+                QPushButton:hover {{
                     color: #ef4444;
-                }
+                }}
             """)
             del_btn.setFixedSize(14, 14)
             del_btn.clicked.connect(lambda _, i=idx: self.delete_skill(i))
@@ -1132,18 +1161,18 @@ class GitHubPage(QWidget):
 
         if not self.pinned_repos:
             empty = QLabel("No pinned repositories selected.")
-            empty.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
+            empty.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; font-style: italic; background: transparent; border: none;")
             self.pinned_grid.addWidget(empty, 0, 0)
             return
 
         for idx, repo in enumerate(self.pinned_repos):
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: #0b0f17;
-                    border: 1px solid #1e293b;
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_app};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 8px;
-                }
+                }}
             """)
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(14, 12, 14, 12)
@@ -1151,17 +1180,17 @@ class GitHubPage(QWidget):
 
             top = QHBoxLayout()
             name_lbl = QLabel(repo.get("name", ""))
-            name_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
+            name_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
             top.addWidget(name_lbl)
             top.addStretch()
 
             pin_icon = QLabel()
-            pin_icon.setPixmap(get_svg_pixmap("push_pin", "#2196f3", 16))
+            pin_icon.setPixmap(get_svg_pixmap("push_pin", f"{self.palette.accent}", 16))
             pin_icon.setStyleSheet("background: transparent; border: none;")
             top.addWidget(pin_icon)
 
             del_btn = QPushButton()
-            del_btn.setIcon(get_svg_icon("delete", "#94a3b8", 12))
+            del_btn.setIcon(get_svg_icon("delete", f"{self.palette.fg_muted}", 12))
             del_btn.setFixedSize(18, 18)
             del_btn.setStyleSheet("background: transparent; border: none;")
             del_btn.clicked.connect(lambda _, i=idx: self.delete_pinned(i))
@@ -1171,8 +1200,9 @@ class GitHubPage(QWidget):
             desc = repo.get("description", "")
             if desc:
                 desc_lbl = QLabel(desc)
-                desc_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
+                desc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 12px; background: transparent; border: none;")
                 desc_lbl.setWordWrap(True)
+                desc_lbl.setMinimumWidth(1)
                 card_layout.addWidget(desc_lbl)
 
             # Metrics
@@ -1182,11 +1212,11 @@ class GitHubPage(QWidget):
             forks = repo.get("forks", "0")
 
             star_lbl = QLabel(f"⭐ {stars} stars")
-            star_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            star_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             meta_line.addWidget(star_lbl)
 
             fork_lbl = QLabel(f"🍴 {forks} forks")
-            fork_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            fork_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             meta_line.addWidget(fork_lbl)
             meta_line.addStretch()
             card_layout.addLayout(meta_line)

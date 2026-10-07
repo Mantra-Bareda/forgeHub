@@ -6,9 +6,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, QThreadPool, QRunnable, QObject
 from PySide6.QtGui import QCursor
 
-from database.repository import ProfileRepository, CertificateRepository, HackathonRepository, PostRepository
+from database.repository import ProfileRepository, MemoryRepository, CertificateRepository, HackathonRepository, PostRepository
 from app.ui.components.achievement_dialog import AchievementDialog
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
+from app.core.palette import ColorPalette, get_current_palette
+from app.core.config import load_config, save_config
+from app.core.theme import theme_manager
 
 
 class IntelSignals(QObject):
@@ -25,7 +28,7 @@ class IntelWorker(QRunnable):
 
     def run(self):
         try:
-            from database.repository import ProfileRepository, ProjectRepository, PostRepository
+            from database.repository import ProfileRepository, MemoryRepository, ProjectRepository, PostRepository
             prof_repo = ProfileRepository(self.db)
             proj_repo = ProjectRepository(self.db)
             post_repo = PostRepository(self.db)
@@ -70,45 +73,32 @@ class IntelWorker(QRunnable):
 class SkillTagWidget(QFrame):
     deleted = Signal(int)
 
-    def __init__(self, skill_id, name, level):
+    def __init__(self, skill_id, name, level, palette: ColorPalette = None):
         super().__init__()
         self.skill_id = skill_id
+        self.palette = palette or get_current_palette()
         self.setObjectName("skillTag")
-        self.setStyleSheet("""
-            #skillTag {
-                background-color: #191b22;
-                border: 1px solid #334155;
-                border-radius: 6px;
-            }
-            #skillTag:hover {
-                border-color: #2196f3;
-            }
-            #skillTag QLabel {
-                background: transparent;
-            }
-        """)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 6, 4)
         layout.setSpacing(6)
 
-        name_lbl = QLabel(name)
-        name_lbl.setStyleSheet("font-size: 12px; font-weight: 500; color: #f1f5f9;")
-        layout.addWidget(name_lbl)
+        self.name_lbl = QLabel(name)
+        layout.addWidget(self.name_lbl)
 
         # Level badge styling
         level_lower = level.lower()
         if "expert" in level_lower:
-            lvl_style = "background-color: rgba(16, 185, 129, 0.2); color: #4edea3; border: 1px solid rgba(16, 185, 129, 0.4);"
+            lvl_style = "background-color: rgba(16, 185, 129, 0.2); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4);"
         elif "advanced" in level_lower:
             lvl_style = "background-color: rgba(33, 150, 243, 0.2); color: #9ecaff; border: 1px solid rgba(33, 150, 243, 0.4);"
         elif "intermediate" in level_lower:
             lvl_style = "background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4);"
         else:
-            lvl_style = "background-color: rgba(100, 116, 139, 0.2); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.4);"
+            lvl_style = "background-color: rgba(100, 116, 139, 0.2); color: #B1B7AB; border: 1px solid rgba(100, 116, 139, 0.4);"
 
-        lvl_lbl = QLabel(level)
-        lvl_lbl.setStyleSheet(f"""
+        self.lvl_lbl = QLabel(level)
+        self.lvl_lbl.setStyleSheet(f"""
             {lvl_style}
             border-radius: 4px;
             padding: 1px 6px;
@@ -116,17 +106,17 @@ class SkillTagWidget(QFrame):
             font-weight: 600;
             font-family: monospace;
         """)
-        layout.addWidget(lvl_lbl)
+        layout.addWidget(self.lvl_lbl)
 
         # Remove button
-        del_btn = QPushButton("×")
-        del_btn.setFixedSize(16, 16)
-        del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        del_btn.setStyleSheet("""
+        self.del_btn = QPushButton("×")
+        self.del_btn.setFixedSize(16, 16)
+        self.del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.del_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                color: #64748b;
+                color: #8B9485;
                 font-size: 13px;
                 font-weight: bold;
                 padding: 0;
@@ -135,8 +125,27 @@ class SkillTagWidget(QFrame):
                 color: #ef4444;
             }
         """)
-        del_btn.clicked.connect(lambda: self.deleted.emit(self.skill_id))
-        layout.addWidget(del_btn)
+        self.del_btn.clicked.connect(lambda: self.deleted.emit(self.skill_id))
+        layout.addWidget(self.del_btn)
+
+        self.apply_theme_colors(self.palette)
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.setStyleSheet(f"""
+            #skillTag {{
+                background-color: {self.palette.bg_card_inner if pal.is_dark else pal.bg_badge};
+                border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                border-radius: 6px;
+            }}
+            #skillTag:hover {{
+                border-color: {self.palette.accent};
+            }}
+            #skillTag QLabel {{
+                background: transparent;
+            }}
+        """)
+        self.name_lbl.setStyleSheet(f"font-size: 12px; font-weight: 500; color: {self.palette.fg_primary}; background: transparent;")
 
 
 class ProfilePage(QWidget):
@@ -145,47 +154,19 @@ class ProfilePage(QWidget):
         self.db = db_manager
         self.repo = ProfileRepository(self.db)
         self._initial_profile_data = {}
-
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #0b0f17;
-            }
-            QLabel {
-                background: transparent;
-                border: none;
-            }
-        """)
+        self.palette = get_current_palette()
+        self.setObjectName("profileRoot")
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
         # Scroll area for entire page
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("""
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollBar:vertical {
-                background: #0b0f17;
-                width: 6px;
-                margin: 0;
-            }
-            QScrollBar::handle:vertical {
-                background: #1e293b;
-                border-radius: 3px;
-                min-height: 24px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #334155;
-            }
-        """)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
 
-        content_widget = QWidget()
-        content_widget.setStyleSheet("background: transparent;")
-        self.content_layout = QVBoxLayout(content_widget)
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(28, 20, 28, 24)
         self.content_layout.setSpacing(18)
 
@@ -217,8 +198,8 @@ class ProfilePage(QWidget):
         grid_layout.addLayout(right_col, 1)
 
         self.content_layout.addLayout(grid_layout)
-        scroll.setWidget(content_widget)
-        main_layout.addWidget(scroll, 1)
+        self.scroll.setWidget(self.content_widget)
+        main_layout.addWidget(self.scroll, 1)
 
         # 3. Bottom Action Dock
         self._setup_bottom_bar(main_layout)
@@ -235,6 +216,9 @@ class ProfilePage(QWidget):
         from app.ai.router import ModelRouter
         self.router = ModelRouter(self.db)
 
+        # Apply active palette and connect live theme updates
+        self.apply_theme_colors(self.palette)
+
         self.load_data()
 
     def showEvent(self, event):
@@ -245,20 +229,9 @@ class ProfilePage(QWidget):
         self._fade_anim.start()
 
     def _setup_top_banner(self):
-        banner = QFrame()
-        banner.setObjectName("profileBanner")
-        banner.setStyleSheet("""
-            #profileBanner {
-                background-color: #101623;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-                padding: 16px 20px;
-            }
-            #profileBanner QLabel {
-                background: transparent;
-            }
-        """)
-        b_layout = QHBoxLayout(banner)
+        self.banner = QFrame()
+        self.banner.setObjectName("profileBanner")
+        b_layout = QHBoxLayout(self.banner)
         b_layout.setContentsMargins(0, 0, 0, 0)
         b_layout.setSpacing(16)
 
@@ -283,33 +256,50 @@ class ProfilePage(QWidget):
 
         name_row = QHBoxLayout()
         name_row.setSpacing(8)
-        self.user_name_lbl = QLabel("Professional Profile")
-        self.user_name_lbl.setStyleSheet("font-size: 20px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.3px;")
+        
+        self.config = load_config()
+        stored_name = self.config.get("user_name", "Professional Profile")
+        self.user_name_lbl = QLabel(stored_name)
+        
+        self.name_edit = QLineEdit(stored_name)
+        self.name_edit.setVisible(False)
+        self.name_edit.returnPressed.connect(self._save_user_name)
+        
+        self.edit_name_btn = QPushButton()
+        self.edit_name_btn.setFixedSize(24, 24)
+        self.edit_name_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.edit_name_btn.setToolTip("Edit Name")
+        self.edit_name_btn.clicked.connect(self._toggle_name_edit)
+        
         name_row.addWidget(self.user_name_lbl)
+        name_row.addWidget(self.name_edit)
+        name_row.addWidget(self.edit_name_btn)
 
-        role_badge = QLabel("Senior AI Architect & Engineer")
-        role_badge.setStyleSheet("""
-            background-color: rgba(33, 150, 243, 0.15);
-            border: 1px solid rgba(33, 150, 243, 0.3);
-            color: #9ecaff;
-            border-radius: 10px;
-            padding: 2px 8px;
-            font-size: 11px;
-            font-weight: 600;
-        """)
-        name_row.addWidget(role_badge)
+        stored_role = self.config.get("user_role", "Senior AI Architect & Engineer")
+        self.role_badge = QLabel(stored_role)
+        
+        self.role_edit = QLineEdit(stored_role)
+        self.role_edit.setVisible(False)
+        self.role_edit.returnPressed.connect(self._save_user_role)
+        
+        self.edit_role_btn = QPushButton()
+        self.edit_role_btn.setFixedSize(20, 20)
+        self.edit_role_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.edit_role_btn.setToolTip("Edit Role")
+        self.edit_role_btn.clicked.connect(self._toggle_role_edit)
+        
+        name_row.addWidget(self.role_badge)
+        name_row.addWidget(self.role_edit)
+        name_row.addWidget(self.edit_role_btn)
         name_row.addStretch()
         user_col.addLayout(name_row)
 
-        self.user_sub_lbl = QLabel("Local Developer Workstation • Configured for Multi-Model Routing")
-        self.user_sub_lbl.setStyleSheet("font-size: 12px; color: #64748b;")
-        user_col.addWidget(self.user_sub_lbl)
+        # Removed user_sub_lbl as requested
         b_layout.addLayout(user_col, 1)
 
         # Project Overview Stats Pill
-        stats_pill = QFrame()
-        stats_pill.setStyleSheet("background-color: #191b22; border: 1px solid #1e293b; border-radius: 8px;")
-        sp_layout = QHBoxLayout(stats_pill)
+        self.stats_pill = QFrame()
+        sp_layout = QHBoxLayout(self.stats_pill)
         sp_layout.setContentsMargins(14, 8, 14, 8)
         sp_layout.setSpacing(14)
 
@@ -319,7 +309,7 @@ class ProfilePage(QWidget):
             col.setSpacing(1)
             col.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl = QLabel(label.upper())
-            lbl.setStyleSheet("font-size: 10px; font-weight: 600; color: #64748b;")
+            lbl.setStyleSheet("font-size: 10px; font-weight: 600; color: #8B9485;")
             val = QLabel("0")
             val.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {color};")
             val.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -327,109 +317,73 @@ class ProfilePage(QWidget):
             col.addWidget(val)
             return col, val
 
-        col1, self.stat_planning = make_stat_col("Planning", "#94a3b8")
+        col1, self.stat_planning = make_stat_col("Planning", "#B1B7AB")
         col2, self.stat_progress = make_stat_col("In Progress", "#fbbf24")
         col3, self.stat_completed = make_stat_col("Completed", "#34d399")
 
         sp_layout.addLayout(col1)
-        sp_sep1 = QFrame()
-        sp_sep1.setFixedWidth(1)
-        sp_sep1.setStyleSheet("background-color: #334155;")
-        sp_layout.addWidget(sp_sep1)
+        self.sp_sep1 = QFrame()
+        self.sp_sep1.setFixedWidth(1)
+        sp_layout.addWidget(self.sp_sep1)
 
         sp_layout.addLayout(col2)
-        sp_sep2 = QFrame()
-        sp_sep2.setFixedWidth(1)
-        sp_sep2.setStyleSheet("background-color: #334155;")
-        sp_layout.addWidget(sp_sep2)
+        self.sp_sep2 = QFrame()
+        self.sp_sep2.setFixedWidth(1)
+        sp_layout.addWidget(self.sp_sep2)
 
         sp_layout.addLayout(col3)
-        b_layout.addWidget(stats_pill)
+        b_layout.addWidget(self.stats_pill)
 
-        self.content_layout.addWidget(banner)
+        self.content_layout.addWidget(self.banner)
 
     def _setup_about_card(self, parent_layout):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-            QLabel {
-                background: transparent;
-            }
-            QTextEdit {
-                background-color: #191b22;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-size: 13px;
-                line-height: 1.4;
-                padding: 10px;
-            }
-            QTextEdit:focus {
-                border-color: #2196f3;
-            }
-        """)
-        layout = QVBoxLayout(card)
+        self.about_card = QFrame()
+        layout = QVBoxLayout(self.about_card)
         layout.setContentsMargins(20, 18, 20, 20)
         layout.setSpacing(12)
 
         h_row = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("badge", "#2196f3", 18))
-        h_row.addWidget(icon)
-        title = QLabel("About & Goals")
-        title.setStyleSheet("font-size: 15px; font-weight: 600; color: #f1f5f9;")
-        h_row.addWidget(title)
+        self.about_icon = QLabel()
+        self.about_icon.setPixmap(get_svg_pixmap("badge", "#276125", 18))
+        h_row.addWidget(self.about_icon)
+        self.about_title = QLabel("About & Goals")
+        h_row.addWidget(self.about_title)
         h_row.addStretch()
-        sub = QLabel("Markdown supported")
-        sub.setStyleSheet("font-size: 11px; color: #64748b;")
-        h_row.addWidget(sub)
+        self.about_sub = QLabel("Markdown supported")
+        h_row.addWidget(self.about_sub)
         layout.addLayout(h_row)
 
-        layout.addWidget(QLabel("ABOUT ME"))
+        self.lbl_about_hdr = QLabel("ABOUT ME")
+        layout.addWidget(self.lbl_about_hdr)
         self.about_input = QTextEdit()
         self.about_input.setMaximumHeight(85)
         self.about_input.setPlaceholderText("Write a short professional bio highlighting your technical specializations...")
         layout.addWidget(self.about_input)
 
-        layout.addWidget(QLabel("PROFESSIONAL GOALS"))
+        self.lbl_goals_hdr = QLabel("PROFESSIONAL GOALS")
+        layout.addWidget(self.lbl_goals_hdr)
         self.goals_input = QTextEdit()
         self.goals_input.setMaximumHeight(85)
         self.goals_input.setPlaceholderText("What are your current engineering and architectural objectives?")
         layout.addWidget(self.goals_input)
 
-        parent_layout.addWidget(card)
+        parent_layout.addWidget(self.about_card)
 
     def _setup_skills_card(self, parent_layout):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-            QLabel {
-                background: transparent;
-            }
-        """)
-        layout = QVBoxLayout(card)
+        self.skills_card = QFrame()
+        layout = QVBoxLayout(self.skills_card)
         layout.setContentsMargins(20, 18, 20, 20)
         layout.setSpacing(12)
 
         h_row = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("brain", "#2196f3", 18))
-        h_row.addWidget(icon)
-        title = QLabel("Skills Management")
-        title.setStyleSheet("font-size: 15px; font-weight: 600; color: #f1f5f9;")
-        h_row.addWidget(title)
+        self.skills_icon = QLabel()
+        self.skills_icon.setPixmap(get_svg_pixmap("brain", "#276125", 18))
+        h_row.addWidget(self.skills_icon)
+        self.skills_title = QLabel("Skills Management")
+        h_row.addWidget(self.skills_title)
         h_row.addStretch()
 
         self.skill_count_lbl = QLabel("0 skills registered")
-        self.skill_count_lbl.setStyleSheet("font-size: 11px; color: #64748b;")
         h_row.addWidget(self.skill_count_lbl)
         layout.addLayout(h_row)
 
@@ -440,57 +394,19 @@ class ProfilePage(QWidget):
         self.new_skill_input = QLineEdit()
         self.new_skill_input.setPlaceholderText("Skill name (e.g. Python, PyTorch, Rust)...")
         self.new_skill_input.setFixedHeight(34)
-        self.new_skill_input.setStyleSheet("""
-            QLineEdit {
-                background-color: #191b22;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-size: 13px;
-                padding-left: 10px;
-            }
-            QLineEdit:focus {
-                border-color: #2196f3;
-            }
-        """)
         self.new_skill_input.returnPressed.connect(self.add_skill)
         add_bar.addWidget(self.new_skill_input, 1)
 
         self.skill_level_combo = QComboBox()
         self.skill_level_combo.setFixedHeight(34)
         self.skill_level_combo.addItems(["Beginner", "Intermediate", "Advanced", "Expert"])
-        self.skill_level_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #191b22;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-size: 12px;
-                padding-left: 8px;
-                padding-right: 8px;
-            }
-        """)
         add_bar.addWidget(self.skill_level_combo)
 
-        add_btn = QPushButton("+ Add Skill")
-        add_btn.setFixedHeight(34)
-        add_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        add_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                border: none;
-                border-radius: 6px;
-                color: #ffffff;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 0 14px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-        """)
-        add_btn.clicked.connect(self.add_skill)
-        add_bar.addWidget(add_btn)
+        self.add_skill_btn = QPushButton("+ Add Skill")
+        self.add_skill_btn.setFixedHeight(34)
+        self.add_skill_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.add_skill_btn.clicked.connect(self.add_skill)
+        add_bar.addWidget(self.add_skill_btn)
         layout.addLayout(add_bar)
 
         # Skills Flow Layout Container
@@ -501,7 +417,6 @@ class ProfilePage(QWidget):
         self.skills_flow_layout.setSpacing(8)
         self.skills_flow_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # Wrap in scroll or horizontal layout
         self.skills_scroll = QScrollArea()
         self.skills_scroll.setWidgetResizable(True)
         self.skills_scroll.setFixedHeight(54)
@@ -509,43 +424,20 @@ class ProfilePage(QWidget):
         self.skills_scroll.setWidget(self.skills_container)
         layout.addWidget(self.skills_scroll)
 
-        parent_layout.addWidget(card)
+        parent_layout.addWidget(self.skills_card)
 
     def _setup_content_pref_card(self, parent_layout):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-            QLabel {
-                background: transparent;
-            }
-            QTextEdit {
-                background-color: #191b22;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-size: 13px;
-                line-height: 1.4;
-                padding: 10px;
-            }
-            QTextEdit:focus {
-                border-color: #2196f3;
-            }
-        """)
-        layout = QVBoxLayout(card)
+        self.content_pref_card = QFrame()
+        layout = QVBoxLayout(self.content_pref_card)
         layout.setContentsMargins(20, 18, 20, 20)
         layout.setSpacing(12)
 
         h_row = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("tune", "#2196f3", 18))
-        h_row.addWidget(icon)
-        title = QLabel("Content & AI Generation Preferences")
-        title.setStyleSheet("font-size: 15px; font-weight: 600; color: #f1f5f9;")
-        h_row.addWidget(title)
+        self.pref_icon = QLabel()
+        self.pref_icon.setPixmap(get_svg_pixmap("tune", "#276125", 18))
+        h_row.addWidget(self.pref_icon)
+        self.content_pref_title = QLabel("Content & AI Generation Preferences")
+        h_row.addWidget(self.content_pref_title)
         h_row.addStretch()
         layout.addLayout(h_row)
 
@@ -553,7 +445,8 @@ class ProfilePage(QWidget):
         two_col.setSpacing(12)
 
         c1 = QVBoxLayout()
-        c1.addWidget(QLabel("TONE / STYLE / FORMATS"))
+        self.lbl_tone_hdr = QLabel("TONE / STYLE / FORMATS")
+        c1.addWidget(self.lbl_tone_hdr)
         self.content_input = QTextEdit()
         self.content_input.setMaximumHeight(80)
         self.content_input.setPlaceholderText("E.g., Concise, technical, bullet-point oriented. Prefer clean code snippets...")
@@ -561,7 +454,8 @@ class ProfilePage(QWidget):
         two_col.addLayout(c1)
 
         c2 = QVBoxLayout()
-        c2.addWidget(QLabel("CONTENT TO AVOID"))
+        self.lbl_avoid_hdr = QLabel("CONTENT TO AVOID")
+        c2.addWidget(self.lbl_avoid_hdr)
         self.avoid_input = QTextEdit()
         self.avoid_input.setMaximumHeight(80)
         self.avoid_input.setPlaceholderText("E.g., Corporate jargon, buzzwords, generic motivational platitudes...")
@@ -569,49 +463,26 @@ class ProfilePage(QWidget):
         two_col.addLayout(c2)
 
         layout.addLayout(two_col)
-        parent_layout.addWidget(card)
+        parent_layout.addWidget(self.content_pref_card)
 
     def _setup_milestones_card(self, parent_layout):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-            QLabel {
-                background: transparent;
-            }
-        """)
-        layout = QVBoxLayout(card)
+        self.milestones_card = QFrame()
+        layout = QVBoxLayout(self.milestones_card)
         layout.setContentsMargins(18, 16, 18, 18)
         layout.setSpacing(12)
 
         h_row = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("award", "#4edea3", 18))
-        h_row.addWidget(icon)
-        title = QLabel("Milestones & Certs")
-        title.setStyleSheet("font-size: 15px; font-weight: 600; color: #f1f5f9;")
-        h_row.addWidget(title)
+        self.milestones_icon = QLabel()
+        self.milestones_icon.setPixmap(get_svg_pixmap("award", "#059669", 18))
+        h_row.addWidget(self.milestones_icon)
+        self.milestones_title = QLabel("Milestones & Certs")
+        h_row.addWidget(self.milestones_title)
         h_row.addStretch()
 
-        add_btn = QPushButton("+ Add")
-        add_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        add_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                border: none;
-                color: #2196f3;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                color: #60a5fa;
-            }
-        """)
-        add_btn.clicked.connect(self.add_achievement)
-        h_row.addWidget(add_btn)
+        self.milestones_add_btn = QPushButton("+ Add")
+        self.milestones_add_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.milestones_add_btn.clicked.connect(self.add_achievement)
+        h_row.addWidget(self.milestones_add_btn)
         layout.addLayout(h_row)
 
         self.achievements_container = QWidget()
@@ -621,59 +492,33 @@ class ProfilePage(QWidget):
         self.achievements_layout.setSpacing(8)
         self.achievements_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        ach_scroll = QScrollArea()
-        ach_scroll.setWidgetResizable(True)
-        ach_scroll.setFixedHeight(180)
-        ach_scroll.setStyleSheet("background: transparent; border: none;")
-        ach_scroll.setWidget(self.achievements_container)
-        layout.addWidget(ach_scroll)
+        self.ach_scroll = QScrollArea()
+        self.ach_scroll.setWidgetResizable(True)
+        self.ach_scroll.setFixedHeight(180)
+        self.ach_scroll.setStyleSheet("background: transparent; border: none;")
+        self.ach_scroll.setWidget(self.achievements_container)
+        layout.addWidget(self.ach_scroll)
 
-        parent_layout.addWidget(card)
+        parent_layout.addWidget(self.milestones_card)
 
     def _setup_intelligence_card(self, parent_layout):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-            QLabel {
-                background: transparent;
-            }
-        """)
-        layout = QVBoxLayout(card)
+        self.intel_card = QFrame()
+        layout = QVBoxLayout(self.intel_card)
         layout.setContentsMargins(18, 16, 18, 18)
         layout.setSpacing(10)
 
         h_row = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("sparkles", "#9ecaff", 18))
-        h_row.addWidget(icon)
-        title = QLabel("Profile Intelligence")
-        title.setStyleSheet("font-size: 15px; font-weight: 600; color: #f1f5f9;")
-        h_row.addWidget(title)
+        self.intel_icon = QLabel()
+        self.intel_icon.setPixmap(get_svg_pixmap("sparkles", "#9ecaff", 18))
+        h_row.addWidget(self.intel_icon)
+        self.intel_title = QLabel("Profile Intelligence")
+        h_row.addWidget(self.intel_title)
         h_row.addStretch()
 
         self.run_intel_btn = QPushButton("Run Analysis")
         self.run_intel_btn.setIcon(get_svg_icon("sync", "#ffffff", 14))
         self.run_intel_btn.setFixedHeight(28)
         self.run_intel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.run_intel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1e293b;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-size: 11px;
-                font-weight: 500;
-                padding: 0 10px;
-            }
-            QPushButton:hover {
-                background-color: #243248;
-                border-color: #2196f3;
-            }
-        """)
         self.run_intel_btn.clicked.connect(self.run_intelligence)
         h_row.addWidget(self.run_intel_btn)
         layout.addLayout(h_row)
@@ -681,91 +526,329 @@ class ProfilePage(QWidget):
         self.intelligence_output = QTextBrowser()
         self.intelligence_output.setPlaceholderText("Click 'Run Analysis' to let multi-model AI analyze your skills, projects, and roadmap...")
         self.intelligence_output.setMinimumHeight(180)
-        self.intelligence_output.setStyleSheet("""
-            QTextBrowser {
-                background-color: #0c0e14;
-                border: 1px solid #1e293b;
-                border-radius: 6px;
-                color: #cbd5e1;
-                font-size: 12px;
-                line-height: 1.4;
-                padding: 10px;
-            }
-        """)
         layout.addWidget(self.intelligence_output)
 
-        parent_layout.addWidget(card)
+        parent_layout.addWidget(self.intel_card)
 
     def _setup_bottom_bar(self, parent_layout):
-        bar = QFrame()
-        bar.setStyleSheet("""
-            QFrame {
-                background-color: #101623;
-                border-top: 1px solid #1e293b;
-                padding: 10px 24px;
-            }
-            QLabel {
-                background: transparent;
-            }
-        """)
-        layout = QHBoxLayout(bar)
+        self.bottom_bar = QFrame()
+        layout = QHBoxLayout(self.bottom_bar)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(14)
 
-        dot = QLabel("●")
-        dot.setStyleSheet("color: #10b981; font-size: 10px;")
-        layout.addWidget(dot)
+        self.bottom_dot = QLabel("●")
+        self.bottom_dot.setStyleSheet("color: #10b981; font-size: 10px; background: transparent;")
+        layout.addWidget(self.bottom_dot)
 
-        status_txt = QLabel("All changes synced to local SQLite database")
-        status_txt.setStyleSheet("font-size: 12px; color: #94a3b8;")
-        layout.addWidget(status_txt)
+        self.status_txt = QLabel("All changes synced to local SQLite database")
+        layout.addWidget(self.status_txt)
         layout.addStretch()
 
-        discard_btn = QPushButton("Discard")
-        discard_btn.setFixedHeight(34)
-        discard_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        discard_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1e293b;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #cbd5e1;
-                font-size: 12px;
-                padding: 0 16px;
-            }
-            QPushButton:hover {
-                background-color: #283548;
-                color: #ffffff;
-            }
-        """)
-        discard_btn.clicked.connect(self.load_data)
-        layout.addWidget(discard_btn)
+        self.discard_btn = QPushButton("Discard")
+        self.discard_btn.setFixedHeight(34)
+        self.discard_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.discard_btn.clicked.connect(self.load_data)
+        layout.addWidget(self.discard_btn)
 
-        save_btn = QPushButton("Save Profile")
-        save_btn.setIcon(get_svg_icon("save", "#ffffff", 14))
-        save_btn.setFixedHeight(34)
-        save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                border: none;
-                border-radius: 6px;
-                color: #ffffff;
-                font-size: 12px;
+        self.save_btn = QPushButton("Save Profile")
+        self.save_btn.setIcon(get_svg_icon("save", "#ffffff", 14))
+        self.save_btn.setFixedHeight(34)
+        self.save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.save_btn.clicked.connect(self.save_profile)
+        layout.addWidget(self.save_btn)
+
+        parent_layout.addWidget(self.bottom_bar)
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+
+        self.setStyleSheet(f"""
+            #profileRoot {{
+                background-color: {self.palette.bg_app};
+            }}
+            QLabel {{
+                background: transparent;
+                background-color: transparent;
+            }}
+        """)
+
+        if hasattr(self, "scroll"):
+            self.scroll.setStyleSheet(f"""
+                QScrollArea {{
+                    background-color: {self.palette.bg_app};
+                    border: none;
+                }}
+                QScrollBar:vertical {{
+                    background-color: {self.palette.scrollbar_track};
+                    width: 6px;
+                    margin: 0;
+                }}
+                QScrollBar::handle:vertical {{
+                    background-color: {self.palette.scrollbar_thumb};
+                    border-radius: 3px;
+                    min-height: 24px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {self.palette.scrollbar_thumb_hover};
+                }}
+            """)
+
+        if hasattr(self, "content_widget"):
+            self.content_widget.setStyleSheet(f"background-color: {self.palette.bg_app};")
+
+        # Top Banner
+        if hasattr(self, "banner"):
+            self.banner.setStyleSheet(f"""
+                #profileBanner {{
+                    background-color: {self.palette.bg_card};
+                    border: 1px solid {self.palette.border_card};
+                    border-radius: 10px;
+                    padding: 16px 20px;
+                }}
+                #profileBanner QLabel {{
+                    background: transparent;
+                }}
+            """)
+
+        if hasattr(self, "user_name_lbl"):
+            self.user_name_lbl.setStyleSheet(f"font-size: 20px; font-weight: 700; color: {self.palette.fg_primary}; letter-spacing: -0.3px; background: transparent;")
+        if hasattr(self, "user_sub_lbl"):
+            self.user_sub_lbl.setStyleSheet(f"font-size: 12px; color: {self.palette.fg_muted}; background: transparent;")
+        if hasattr(self, "role_badge"):
+            self.role_badge.setStyleSheet(f"""
+                background-color: {self.palette.accent_bg};
+                border: 1px solid {self.palette.border_focus};
+                color: {self.palette.accent};
+                border-radius: 10px;
+                padding: 2px 8px;
+                font-size: 11px;
                 font-weight: 600;
-                padding: 0 20px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-            QPushButton:pressed {
-                background-color: #1565c0;
-            }
-        """)
-        save_btn.clicked.connect(self.save_profile)
-        layout.addWidget(save_btn)
+            """)
 
-        parent_layout.addWidget(bar)
+        if hasattr(self, "stats_pill"):
+            self.stats_pill.setStyleSheet(f"""
+                background-color: {self.palette.bg_card_inner if pal.is_dark else pal.bg_badge};
+                border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                border-radius: 8px;
+            """)
+        if hasattr(self, "sp_sep1"):
+            self.sp_sep1.setStyleSheet(f"background-color: {self.palette.border_card};")
+        if hasattr(self, "sp_sep2"):
+            self.sp_sep2.setStyleSheet(f"background-color: {self.palette.border_card};")
+
+        # Generic Card styling
+        card_qss = f"""
+            QFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 10px;
+            }}
+            QLabel {{
+                background: transparent;
+            }}
+        """
+        for card_w in [getattr(self, "about_card", None),
+                       getattr(self, "skills_card", None),
+                       getattr(self, "content_pref_card", None),
+                       getattr(self, "milestones_card", None),
+                       getattr(self, "intel_card", None)]:
+            if card_w:
+                card_w.setStyleSheet(card_qss)
+
+        # Card Headings & Secondary Labels
+        title_qss = f"font-size: 15px; font-weight: 600; color: {self.palette.fg_primary}; background: transparent;"
+        for t in [getattr(self, "about_title", None),
+                  getattr(self, "skills_title", None),
+                  getattr(self, "content_pref_title", None),
+                  getattr(self, "milestones_title", None),
+                  getattr(self, "intel_title", None)]:
+            if t:
+                t.setStyleSheet(title_qss)
+
+        sub_qss = f"font-size: 11px; color: {self.palette.fg_muted}; background: transparent;"
+        if hasattr(self, "about_sub"):
+            self.about_sub.setStyleSheet(sub_qss)
+        if hasattr(self, "skill_count_lbl"):
+            self.skill_count_lbl.setStyleSheet(sub_qss)
+
+        hdr_qss = f"font-size: 11px; font-weight: 600; color: {self.palette.fg_muted}; background: transparent;"
+        for h in [getattr(self, "lbl_about_hdr", None),
+                  getattr(self, "lbl_goals_hdr", None),
+                  getattr(self, "lbl_tone_hdr", None),
+                  getattr(self, "lbl_avoid_hdr", None)]:
+            if h:
+                h.setStyleSheet(hdr_qss)
+
+        # Text Inputs
+        input_qss = f"""
+            QTextEdit {{
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                border-radius: 6px;
+                color: {self.palette.fg_primary};
+                font-size: 13px;
+                line-height: 1.4;
+                padding: 10px;
+            }}
+            QTextEdit:focus {{
+                border-color: {self.palette.accent};
+            }}
+        """
+        for inp in [getattr(self, "about_input", None),
+                    getattr(self, "goals_input", None),
+                    getattr(self, "content_input", None),
+                    getattr(self, "avoid_input", None)]:
+            if inp:
+                inp.setStyleSheet(input_qss)
+
+        # Skills line edit & combo
+        if hasattr(self, "new_skill_input"):
+            self.new_skill_input.setStyleSheet(f"""
+                QLineEdit {{
+                    background-color: {self.palette.bg_input};
+                    border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                    border-radius: 6px;
+                    color: {self.palette.fg_primary};
+                    font-size: 13px;
+                    padding-left: 10px;
+                }}
+                QLineEdit:focus {{
+                    border-color: {self.palette.accent};
+                }}
+            """)
+
+        if hasattr(self, "skill_level_combo"):
+            self.skill_level_combo.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {self.palette.bg_input};
+                    border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                    border-radius: 6px;
+                    color: {self.palette.fg_primary};
+                    font-size: 12px;
+                    padding-left: 8px;
+                    padding-right: 8px;
+                }}
+            """)
+
+        if hasattr(self, "add_skill_btn"):
+            self.add_skill_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.accent};
+                    border: none;
+                    border-radius: 6px;
+                    color: {self.palette.accent_fg};
+                    font-size: 12px;
+                    font-weight: 600;
+                    padding: 0 14px;
+                }}
+                QPushButton:hover {{
+                    background-color: {self.palette.accent_hover};
+                }}
+            """)
+
+        # Milestones Add button
+        if hasattr(self, "milestones_add_btn"):
+            self.milestones_add_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent;
+                    border: none;
+                    color: {self.palette.accent};
+                    font-size: 12px;
+                    font-weight: 600;
+                }}
+                QPushButton:hover {{
+                    color: {self.palette.accent_hover};
+                }}
+            """)
+
+        # Intelligence
+        if hasattr(self, "run_intel_btn"):
+            self.run_intel_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.bg_card_inner if pal.is_dark else pal.bg_badge};
+                    border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                    border-radius: 6px;
+                    color: {self.palette.fg_primary};
+                    font-size: 11px;
+                    font-weight: 500;
+                    padding: 0 10px;
+                }}
+                QPushButton:hover {{
+                    background-color: {self.palette.bg_surface_hover};
+                    border-color: {self.palette.accent};
+                }}
+            """)
+
+        if hasattr(self, "intelligence_output"):
+            self.intelligence_output.setStyleSheet(f"""
+                QTextBrowser {{
+                    background-color: {self.palette.bg_input};
+                    border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                    border-radius: 6px;
+                    color: {self.palette.fg_primary};
+                    font-size: 12px;
+                    line-height: 1.4;
+                    padding: 10px;
+                }}
+            """)
+
+        # Bottom Bar
+        if hasattr(self, "bottom_bar"):
+            self.bottom_bar.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {self.palette.bg_card};
+                    border-top: 1px solid {self.palette.border_card};
+                    padding: 10px 24px;
+                }}
+                QLabel {{
+                    background: transparent;
+                }}
+            """)
+        if hasattr(self, "status_txt"):
+            self.status_txt.setStyleSheet(f"font-size: 12px; color: {self.palette.fg_muted}; background: transparent;")
+
+        if hasattr(self, "discard_btn"):
+            self.discard_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.bg_card_inner if pal.is_dark else pal.bg_badge};
+                    border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
+                    border-radius: 6px;
+                    color: {self.palette.fg_secondary};
+                    font-size: 12px;
+                    padding: 0 16px;
+                }}
+                QPushButton:hover {{
+                    background-color: {self.palette.bg_surface_hover};
+                    color: {self.palette.fg_primary};
+                }}
+            """)
+
+        if hasattr(self, "save_btn"):
+            self.save_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.accent};
+                    border: none;
+                    border-radius: 6px;
+                    color: {self.palette.accent_fg};
+                    font-size: 12px;
+                    font-weight: 600;
+                    padding: 0 20px;
+                }}
+                QPushButton:hover {{
+                    background-color: {self.palette.accent_hover};
+                }}
+                QPushButton:pressed {{
+                    background-color: {self.palette.accent_pressed};
+                }}
+            """)
+
+        # Re-apply theme to active skill tags
+        if hasattr(self, "skills_flow_layout"):
+            for i in range(self.skills_flow_layout.count()):
+                item = self.skills_flow_layout.itemAt(i)
+                if item and item.widget() and hasattr(item.widget(), "apply_theme_colors"):
+                    item.widget().apply_theme_colors(pal)
+
 
     def run_intelligence(self):
         self.intelligence_output.setPlainText("Analyzing projects, skills, and professional roadmap via AI...")
@@ -817,13 +900,14 @@ class ProfilePage(QWidget):
         skills = self.repo.get_skills()
         self.skill_count_lbl.setText(f"{len(skills)} skills registered")
 
+        pal = getattr(self, 'palette', get_current_palette())
         if not skills:
             na_lbl = QLabel("No skills added yet.")
-            na_lbl.setStyleSheet("color: #64748b; font-size: 12px;")
+            na_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-size: 12px; background: transparent;")
             self.skills_flow_layout.addWidget(na_lbl)
         else:
             for s in skills:
-                tag = SkillTagWidget(s["id"], s["name"], s.get("level", "Advanced"))
+                tag = SkillTagWidget(s["id"], s["name"], s.get("level", "Advanced"), palette=pal)
                 tag.deleted.connect(self._on_delete_skill)
                 self.skills_flow_layout.addWidget(tag)
 
@@ -846,51 +930,53 @@ class ProfilePage(QWidget):
                 child.widget().deleteLater()
 
         achievements = self.repo.get_achievements()
+        pal = getattr(self, 'palette', get_current_palette())
         if not achievements:
             na_lbl = QLabel("No milestones or certificates registered yet.")
-            na_lbl.setStyleSheet("color: #64748b; font-size: 12px; padding: 10px 0;")
+            na_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-size: 12px; padding: 10px 0; background: transparent;")
             self.achievements_layout.addWidget(na_lbl)
         else:
             for a in achievements:
                 row = QFrame()
-                row.setStyleSheet("""
-                    QFrame {
-                        background-color: #191b22;
-                        border: 1px solid #1e293b;
+                row.setStyleSheet(f"""
+                    QFrame {{
+                        background-color: {self.palette.bg_card_inner if pal.is_dark else pal.bg_badge};
+                        border: 1px solid {self.palette.border_card if pal.is_dark else pal.border_subtle};
                         border-radius: 6px;
-                    }
-                    QFrame:hover {
-                        border-color: #334155;
-                    }
+                    }}
+                    QFrame:hover {{
+                        border-color: {self.palette.border_focus};
+                    }}
                 """)
                 rl = QHBoxLayout(row)
                 rl.setContentsMargins(10, 8, 10, 8)
                 rl.setSpacing(8)
 
                 date_lbl = QLabel(a.get("date_achieved") or "Recent")
-                date_lbl.setStyleSheet("font-size: 11px; font-family: monospace; color: #4edea3;")
+                date_lbl.setStyleSheet("font-size: 11px; font-family: monospace; color: #059669; background: transparent;")
                 rl.addWidget(date_lbl)
 
                 type_badge = QLabel(a.get("type") or "Achievement")
-                type_badge.setStyleSheet("""
-                    background-color: #131b2a;
-                    border: 1px solid #334155;
+                type_badge.setStyleSheet(f"""
+                    background-color: {self.palette.bg_card};
+                    border: 1px solid {self.palette.border_subtle};
                     border-radius: 4px;
                     padding: 1px 5px;
                     font-size: 10px;
-                    color: #94a3b8;
+                    color: {self.palette.fg_muted};
                 """)
                 rl.addWidget(type_badge)
 
                 title_lbl = QLabel(a.get("title") or "")
-                title_lbl.setStyleSheet("font-size: 12px; color: #f1f5f9;")
+                title_lbl.setStyleSheet(f"font-size: 12px; color: {self.palette.fg_primary}; background: transparent;")
                 title_lbl.setWordWrap(True)
+                title_lbl.setMinimumWidth(1)
                 rl.addWidget(title_lbl, 1)
 
                 del_btn = QPushButton("×")
                 del_btn.setFixedSize(16, 16)
                 del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-                del_btn.setStyleSheet("background: transparent; border: none; color: #64748b; font-size: 13px;")
+                del_btn.setStyleSheet(f"background: transparent; border: none; color: {self.palette.fg_muted}; font-size: 13px;")
                 del_btn.clicked.connect(lambda _, aid=a["id"]: self._on_delete_achievement(aid))
                 rl.addWidget(del_btn)
 
@@ -906,6 +992,78 @@ class ProfilePage(QWidget):
             data = dialog.get_data()
             self.repo.add_achievement(data["title"], data["description"], data["date"], data["type"])
             self.load_achievements()
+
+
+    def _toggle_name_edit(self):
+        if self.user_name_lbl.isVisible():
+            self.user_name_lbl.setVisible(False)
+            self.name_edit.setVisible(True)
+            self.name_edit.setText(self.user_name_lbl.text())
+            self.name_edit.setFocus()
+            self.edit_name_btn.setIcon(get_svg_icon("check_circle", self.palette.success, 14))
+        else:
+            self._save_user_name()
+
+    def _save_user_name(self):
+        new_name = self.name_edit.text().strip()
+        if new_name:
+            self.user_name_lbl.setText(new_name)
+            self.config["user_name"] = new_name
+            save_config(self.config)
+            
+            self._sync_identity_memory()
+            
+        self.name_edit.setVisible(False)
+        self.user_name_lbl.setVisible(True)
+        self.edit_name_btn.setIcon(get_svg_icon("edit_note", self.palette.fg_muted, 14))
+
+
+    def _toggle_role_edit(self):
+        if self.role_badge.isVisible():
+            self.role_badge.setVisible(False)
+            self.role_edit.setVisible(True)
+            self.role_edit.setText(self.role_badge.text())
+            self.role_edit.setFocus()
+            self.edit_role_btn.setIcon(get_svg_icon("check_circle", self.palette.success, 12))
+        else:
+            self._save_user_role()
+
+    def _save_user_role(self):
+        new_role = self.role_edit.text().strip()
+        if new_role:
+            self.role_badge.setText(new_role)
+            self.config["user_role"] = new_role
+            from app.core.config import save_config
+            save_config(self.config)
+            self._sync_identity_memory()
+            
+        self.role_edit.setVisible(False)
+        self.role_badge.setVisible(True)
+        self.edit_role_btn.setIcon(get_svg_icon("edit_note", self.palette.fg_muted, 12))
+
+    def _sync_identity_memory(self):
+        try:
+            name = self.config.get("user_name", "Professional Profile")
+            role = self.config.get("user_role", "Senior AI Architect & Engineer")
+            
+            from database.repository import MemoryRepository
+            mem_repo = MemoryRepository(self.db)
+            mems = mem_repo.get_memories(category="Identity")
+            mem_text = f"User's name is {name} and role is {role}."
+            
+            found_id = None
+            for m in mems:
+                if m['content'].startswith("User's name is "):
+                    found_id = m['id']
+                    break
+            
+            if found_id:
+                mem_repo.update_memory(found_id, mem_text, category="Identity", importance="High")
+            else:
+                mem_repo.add_memory(mem_text, category="Identity", importance="High")
+        except Exception as e:
+            import logging
+            logging.getLogger("ForgeHub").error(f"Failed to sync identity to memory: {e}")
 
     def save_profile(self):
         data = {

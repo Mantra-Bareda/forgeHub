@@ -74,7 +74,17 @@ class ContextCompiler:
         except Exception as e:
             logger.error(f"Failed to load memory context: {str(e)}")
             
-        # 4. Behavioral instructions
+        # 4. User Personalized Directives (Refined Instructions)
+        try:
+            from app.core.config import load_config
+            cfg = load_config()
+            refined_inst = cfg.get("refined_personalized_instruction", "").strip()
+            if refined_inst:
+                prompt_parts.append(f"### User Personalized Directives ###\n{refined_inst}")
+        except Exception as e:
+            logger.error(f"Failed to load personalized directives: {str(e)}")
+
+        # 5. Behavioral instructions
         prompt_parts.append(
             "### Instructions ###\n"
             "1. Always adhere to the user's Content Preferences and Things to Avoid if provided.\n"

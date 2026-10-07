@@ -2,13 +2,16 @@ import sys
 import logging
 import traceback
 from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtGui import QIcon
+import os, ctypes
+from PySide6.QtCore import qInstallMessageHandler, QtMsgType
 from PySide6.QtCore import QThreadPool
 from app.ui.main_window import MainWindow
 from app.core.logger import setup_logger
 from app.core.config import load_config
 from database.connection import DatabaseManager
 from database.schema import initialize_database
-from app.core.theme import apply_theme
+from app.core.theme import init_theme
 from database.repository import ProviderRepository
 
 def global_exception_handler(exc_type, exc_value, exc_traceback):
@@ -29,6 +32,13 @@ def cleanup():
     QThreadPool.globalInstance().waitForDone()
     logger.info("Shutdown complete.")
 
+
+def qt_message_handler(mode, context, message):
+    if "Could not parse stylesheet" in message:
+        return
+    import sys
+    print(message, file=sys.stderr)
+
 def main():
     setup_logger()
     logger = logging.getLogger("ForgeHub")
@@ -44,8 +54,21 @@ def main():
     provider_repo.initialize_providers()
     logger.info("Database initialized")
     
+    qInstallMessageHandler(qt_message_handler)
     app = QApplication(sys.argv)
-    apply_theme(app, config.get("theme", "system"))
+    
+    # Set app ID for Windows taskbar grouping
+    try:
+        myappid = 'forgehub.ai.desktop.v2.5'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception:
+        pass
+        
+    icon_path = os.path.abspath("forge_hub_logo.png")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+
+    init_theme(app, config.get("theme", "system"))
     app.aboutToQuit.connect(cleanup)
     
     window = MainWindow(config, db_manager)

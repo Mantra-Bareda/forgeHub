@@ -22,11 +22,16 @@ class ModelManagementDialog(QDialog):
         layout.addWidget(self.tree)
         
         btn_layout = QHBoxLayout()
+        
+        self.copy_btn = QPushButton("Copy Config From...")
+        self.copy_btn.clicked.connect(self.copy_from_other_key)
+        
         self.save_btn = QPushButton("Save Changes")
         self.cancel_btn = QPushButton("Cancel")
         self.save_btn.clicked.connect(self.save_data)
         self.cancel_btn.clicked.connect(self.reject)
         
+        btn_layout.addWidget(self.copy_btn)
         btn_layout.addStretch()
         btn_layout.addWidget(self.cancel_btn)
         btn_layout.addWidget(self.save_btn)
@@ -35,6 +40,52 @@ class ModelManagementDialog(QDialog):
         self.items = []
         self.load_models()
         
+    def copy_from_other_key(self):
+        from PySide6.QtWidgets import QInputDialog, QMessageBox
+        
+        # Find other keys for this provider
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, display_name 
+                FROM api_keys_metadata 
+                WHERE provider_id = (
+                    SELECT provider_id FROM api_keys_metadata WHERE id = ?
+                ) AND id != ?
+            ''', (self.key_id, self.key_id))
+            other_keys = cursor.fetchall()
+            
+        if not other_keys:
+            QMessageBox.information(self, "No Other Keys", f"You don't have any other API keys configured for {self.provider_name}.")
+            return
+            
+        items = [f"{k['display_name']} (Key #{k['id']})" for k in other_keys]
+        item, ok = QInputDialog.getItem(self, "Copy Model Config", "Select a key to copy enabled models and rate limits from:", items, 0, False)
+        
+        if ok and item:
+            source_key_id = int(item.split("Key #")[1].split(")")[0])
+            
+            # Fetch config for source key
+            source_map = {}
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT model_id, is_enabled, rpm_limit, rpd_limit FROM models WHERE key_id = ?", (source_key_id,))
+                for row in cursor.fetchall():
+                    source_map[row["model_id"]] = row
+                    
+            # Apply to current tree
+            changes_made = 0
+            for tree_item, chk, rpm, rpd in self.items:
+                m_id = tree_item.data(1, Qt.ItemDataRole.UserRole)
+                if m_id in source_map:
+                    src = source_map[m_id]
+                    chk.setChecked(bool(src["is_enabled"]))
+                    rpm.setText(str(src["rpm_limit"]) if src["rpm_limit"] else "")
+                    rpd.setText(str(src["rpd_limit"]) if src["rpd_limit"] else "")
+                    changes_made += 1
+                    
+            QMessageBox.information(self, "Config Copied", f"Copied configuration for {changes_made} models. Click 'Save Changes' to apply.")
+
     def load_models(self):
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

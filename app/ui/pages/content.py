@@ -12,6 +12,9 @@ from app.ai.generator import ContentGenerator
 from app.ai.compiler import ContextCompiler
 from database.repository import ProjectRepository, ProfileRepository, CertificateRepository, HackathonRepository
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
+
 
 
 def setup_page_animation(widget: QWidget):
@@ -106,6 +109,7 @@ class PolishWorker(QRunnable):
 class ContentPage(QWidget):
     def __init__(self, db_manager):
         super().__init__()
+        self.palette = get_current_palette()
         self.db = db_manager
 
         self.proj_repo = ProjectRepository(self.db)
@@ -130,11 +134,11 @@ class ContentPage(QWidget):
 
         # 2. Main Workspace Splitter
         splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #1e293b;
+        splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background-color: {self.palette.border_card};
                 width: 1px;
-            }
+            }}
         """)
 
         # Left: Configuration Panel wrapped in scroll area
@@ -144,25 +148,25 @@ class ContentPage(QWidget):
         scroll_config.setFrameShape(QFrame.Shape.NoFrame)
         scroll_config.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_config.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_config.setStyleSheet("""
-            QScrollArea {
-                background-color: #0e131f;
+        scroll_config.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {self.palette.bg_app};
                 border: none;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 background: transparent;
                 width: 4px;
-            }
-            QScrollBar::handle:vertical {
-                background: #1e293b;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {self.palette.border_card};
                 border-radius: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #2196f3;
-            }
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {self.palette.accent};
+            }}
         """)
         scroll_config.setWidget(left_panel)
-        scroll_config.setMinimumWidth(220)
+        scroll_config.setMinimumWidth(150)
         splitter.addWidget(scroll_config)
 
         # Right: Editor & Live Workspace
@@ -182,11 +186,11 @@ class ContentPage(QWidget):
     def create_top_header(self) -> QFrame:
         banner = QFrame()
         banner.setMinimumWidth(0)
-        banner.setStyleSheet("""
-            QFrame {
-                background-color: #0c0e14;
-                border-bottom: 1px solid #1e293b;
-            }
+        banner.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border-bottom: 1px solid {self.palette.border_card};
+            }}
         """)
         layout = QHBoxLayout(banner)
         layout.setContentsMargins(16, 10, 16, 10)
@@ -195,11 +199,11 @@ class ContentPage(QWidget):
         # Left Icon & Title
         icon_box = QFrame()
         icon_box.setFixedSize(32, 32)
-        icon_box.setStyleSheet("background-color: rgba(33, 150, 243, 0.15); border-radius: 8px;")
+        icon_box.setStyleSheet(f"background-color: {self.palette.accent_bg}; border-radius: 8px;")
         ib_layout = QVBoxLayout(icon_box)
         ib_layout.setContentsMargins(0, 0, 0, 0)
         icon_lbl = QLabel()
-        icon_lbl.setPixmap(get_svg_pixmap("article", "#2196f3", 18))
+        icon_lbl.setPixmap(get_svg_pixmap(f"article", "{self.palette.accent}", 18))
         icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_lbl.setStyleSheet("background: transparent; border: none;")
         ib_layout.addWidget(icon_lbl)
@@ -211,17 +215,17 @@ class ContentPage(QWidget):
         top_row = QHBoxLayout()
         top_row.setSpacing(8)
         title_lbl = QLabel("Content Engine Workspace")
-        title_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; background: transparent; border: none;")
+        title_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; background: transparent; border: none;")
         top_row.addWidget(title_lbl)
 
         core_badge = QLabel("v2.4-Core")
-        core_badge.setStyleSheet("""
-            color: #94a3b8;
+        core_badge.setStyleSheet(f"""
+            color: {self.palette.fg_muted};
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
             font-weight: 600;
-            background-color: #131b2a;
-            border: 1px solid #1e293b;
+            background-color: {self.palette.bg_card};
+            border: 1px solid {self.palette.border_card};
             border-radius: 4px;
             padding: 1px 6px;
         """)
@@ -232,20 +236,20 @@ class ContentPage(QWidget):
         sub_row = QHBoxLayout()
         sub_row.setSpacing(6)
         sub_lbl = QLabel("Multi-Model Routing")
-        sub_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+        sub_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
         sub_row.addWidget(sub_lbl)
 
         sep = QLabel("•")
-        sep.setStyleSheet("color: #475569; font-size: 11px; background: transparent; border: none;")
+        sep.setStyleSheet(f"color: {self.palette.fg_muted}; font-size: 11px; background: transparent; border: none;")
         sub_row.addWidget(sep)
 
         dot = QFrame()
         dot.setFixedSize(6, 6)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 3px;")
+        dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 3px;")
         sub_row.addWidget(dot)
 
         synced_lbl = QLabel("Memory Synced")
-        synced_lbl.setStyleSheet("color: #4edea3; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none;")
+        synced_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none;")
         sub_row.addWidget(synced_lbl)
         sub_row.addStretch()
         title_box.addLayout(sub_row)
@@ -255,49 +259,49 @@ class ContentPage(QWidget):
 
         # Telemetry chips
         chip1 = QFrame()
-        chip1.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 6px; padding: 2px 8px;")
+        chip1.setStyleSheet(f"background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; border-radius: 6px; padding: 2px 8px;")
         c1_lay = QHBoxLayout(chip1)
         c1_lay.setContentsMargins(6, 2, 6, 2)
         c1_lay.setSpacing(6)
         i1 = QLabel()
-        i1.setPixmap(get_svg_pixmap("memory", "#2196f3", 13))
+        i1.setPixmap(get_svg_pixmap(f"memory", "{self.palette.accent}", 13))
         i1.setStyleSheet("background: transparent; border: none;")
         c1_lay.addWidget(i1)
         t1 = QLabel("Adaptive Cache")
-        t1.setStyleSheet("color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        t1.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         c1_lay.addWidget(t1)
         layout.addWidget(chip1)
 
         chip2 = QFrame()
-        chip2.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 6px; padding: 2px 8px;")
+        chip2.setStyleSheet(f"background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; border-radius: 6px; padding: 2px 8px;")
         c2_lay = QHBoxLayout(chip2)
         c2_lay.setContentsMargins(6, 2, 6, 2)
         c2_lay.setSpacing(6)
         i2 = QLabel()
-        i2.setPixmap(get_svg_pixmap("bolt", "#4edea3", 13))
+        i2.setPixmap(get_svg_pixmap(f"bolt", "{self.palette.success}", 13))
         i2.setStyleSheet("background: transparent; border: none;")
         c2_lay.addWidget(i2)
         t2 = QLabel("<15ms WAL")
-        t2.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        t2.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         c2_lay.addWidget(t2)
         layout.addWidget(chip2)
 
         reset_btn = QPushButton(" Reset Form")
-        reset_btn.setIcon(get_svg_icon("refresh", "#94a3b8", 14))
-        reset_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        reset_btn.setIcon(get_svg_icon(f"refresh", "{self.palette.fg_muted}", 14))
+        reset_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 padding: 5px 12px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-                color: #f1f5f9;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+                color: {self.palette.fg_primary};
+            }}
         """)
         reset_btn.clicked.connect(self.reset_form)
         layout.addWidget(reset_btn)
@@ -306,7 +310,7 @@ class ContentPage(QWidget):
 
     def create_config_panel(self) -> QWidget:
         panel = QWidget()
-        panel.setStyleSheet("background-color: #0e131f;")
+        panel.setStyleSheet(f"background-color: {self.palette.bg_app};")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(18)
@@ -316,16 +320,18 @@ class ContentPage(QWidget):
         h_box = QVBoxLayout()
         h_box.setSpacing(2)
         h_title = QLabel("Configuration")
-        h_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; background: transparent; border: none;")
+        h_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; background: transparent; border: none;")
         h_sub = QLabel("Generation source parameters & prompt tuning")
-        h_sub.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+        h_sub.setWordWrap(True)
+        h_sub.setMinimumWidth(1)
+        h_sub.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
         h_box.addWidget(h_title)
         h_box.addWidget(h_sub)
         p_head.addLayout(h_box)
         p_head.addStretch()
 
         t_icon = QLabel()
-        t_icon.setPixmap(get_svg_pixmap("tune", "#64748b", 18))
+        t_icon.setPixmap(get_svg_pixmap(f"tune", "{self.palette.fg_muted}", 18))
         t_icon.setStyleSheet("background: transparent; border: none;")
         p_head.addWidget(t_icon)
         layout.addLayout(p_head)
@@ -334,56 +340,58 @@ class ContentPage(QWidget):
         fmt_box = QVBoxLayout()
         fmt_box.setSpacing(6)
         fmt_lbl = QLabel("TARGET FORMAT")
-        fmt_lbl.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        fmt_lbl.setWordWrap(True)
+        fmt_lbl.setMinimumWidth(1)
+        fmt_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         fmt_box.addWidget(fmt_lbl)
 
         btn_seg_frame = QFrame()
-        btn_seg_frame.setStyleSheet("background-color: #131b2a; border: 1px solid #1e293b; border-radius: 8px; padding: 3px;")
-        bs_layout = QHBoxLayout(btn_seg_frame)
+        btn_seg_frame.setStyleSheet(f"background-color: {self.palette.bg_card}; border: 1px solid {self.palette.border_card}; border-radius: 8px; padding: 3px;")
+        bs_layout = QVBoxLayout(btn_seg_frame)
         bs_layout.setContentsMargins(3, 3, 3, 3)
         bs_layout.setSpacing(6)
 
         self.btn_linkedin = QPushButton(" LinkedIn Post")
-        self.btn_linkedin.setIcon(get_svg_icon("share", "#ffffff", 14))
+        self.btn_linkedin.setIcon(get_svg_icon(f"share", "{self.palette.fg_primary}", 14))
         self.btn_linkedin.setCheckable(True)
         self.btn_linkedin.setChecked(True)
-        self.btn_linkedin.setStyleSheet("""
-            QPushButton {
+        self.btn_linkedin.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 border-radius: 6px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 8px 12px;
-            }
-            QPushButton:checked {
-                background-color: #2196f3;
-                color: #ffffff;
-            }
+            }}
+            QPushButton:checked {{
+                background-color: {self.palette.accent};
+                color: {self.palette.fg_primary};
+            }}
         """)
         self.btn_linkedin.clicked.connect(lambda: self.set_target_format("LinkedIn Post"))
         bs_layout.addWidget(self.btn_linkedin)
 
         self.btn_readme = QPushButton(" GitHub README")
-        self.btn_readme.setIcon(get_svg_icon("terminal", "#94a3b8", 14))
+        self.btn_readme.setIcon(get_svg_icon(f"terminal", "{self.palette.fg_muted}", 14))
         self.btn_readme.setCheckable(True)
-        self.btn_readme.setStyleSheet("""
-            QPushButton {
+        self.btn_readme.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 border-radius: 6px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 8px 12px;
-            }
-            QPushButton:checked {
-                background-color: #2196f3;
-                color: #ffffff;
-            }
+            }}
+            QPushButton:checked {{
+                background-color: {self.palette.accent};
+                color: {self.palette.fg_primary};
+            }}
         """)
         self.btn_readme.clicked.connect(lambda: self.set_target_format("GitHub README"))
         bs_layout.addWidget(self.btn_readme)
@@ -400,47 +408,50 @@ class ContentPage(QWidget):
 
         sc_head = QHBoxLayout()
         sc_lbl = QLabel("SOURCE CLASSIFICATION")
-        sc_lbl.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        sc_lbl.setWordWrap(True)
+        sc_lbl.setMinimumWidth(1)
+        sc_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         sc_head.addWidget(sc_lbl)
         sc_head.addStretch()
         auto_lbl = QLabel("Auto-linked")
-        auto_lbl.setStyleSheet("color: #2196f3; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none;")
+        auto_lbl.setStyleSheet(f"color: {self.palette.accent}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; background: transparent; border: none;")
         sc_head.addWidget(auto_lbl)
         sc_box.addLayout(sc_head)
 
-        cat_grid = QHBoxLayout()
+        from PySide6.QtWidgets import QGridLayout
+        cat_grid = QGridLayout()
         cat_grid.setSpacing(6)
         self.cat_btn_group = QButtonGroup(self)
         self.cat_buttons = {}
 
-        for cat_name in ["Project", "Certificate", "Hackathon", "Achievement"]:
+        for idx, cat_name in enumerate(["Project", "Certificate", "Hackathon", "Achievement"]):
             btn = QPushButton(cat_name if cat_name != "Achievement" else "Milestone")
             btn.setCheckable(True)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #131b2a;
-                    border: 1px solid #1e293b;
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.palette.bg_card};
+                    border: 1px solid {self.palette.border_card};
                     border-radius: 6px;
-                    color: #94a3b8;
+                    color: {self.palette.fg_muted};
                     font-family: 'Inter', sans-serif;
                     font-size: 11px;
                     font-weight: 600;
                     padding: 6px 8px;
-                }
-                QPushButton:hover {
-                    color: #f1f5f9;
-                    background-color: #1e293b;
-                }
-                QPushButton:checked {
-                    background-color: rgba(33, 150, 243, 0.2);
-                    border-color: #2196f3;
-                    color: #99cbff;
-                }
+                }}
+                QPushButton:hover {{
+                    color: {self.palette.fg_primary};
+                    background-color: {self.palette.border_card};
+                }}
+                QPushButton:checked {{
+                    background-color: {self.palette.accent_bg};
+                    border-color: {self.palette.accent};
+                    color: {self.palette.accent};
+                }}
             """)
             btn.clicked.connect(lambda _, c=cat_name: self.set_source_category(c))
             self.cat_btn_group.addButton(btn)
             self.cat_buttons[cat_name] = btn
-            cat_grid.addWidget(btn)
+            cat_grid.addWidget(btn, idx // 2, idx % 2)
 
         self.cat_buttons["Project"].setChecked(True)
         sc_box.addLayout(cat_grid)
@@ -452,46 +463,53 @@ class ContentPage(QWidget):
 
         item_head = QHBoxLayout()
         item_lbl = QLabel("ACTIVE ARTIFACT SOURCE")
-        item_lbl.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        item_lbl.setWordWrap(True)
+        item_lbl.setMinimumWidth(1)
+        item_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         item_head.addWidget(item_lbl)
         item_head.addStretch()
 
         cache_lbl = QLabel("LOCAL CACHE")
-        cache_lbl.setStyleSheet("color: #2196f3; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; background: transparent; border: none;")
+        cache_lbl.setStyleSheet(f"color: {self.palette.accent}; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; background: transparent; border: none;")
         item_head.addWidget(cache_lbl)
         item_box.addLayout(item_head)
 
         self.item_combo = QComboBox()
-        self.item_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.item_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 padding: 8px 12px;
-            }
-            QComboBox:focus {
-                border-color: #2196f3;
-            }
-            QComboBox::drop-down {
+            }}
+            QComboBox:focus {{
+                border-color: {self.palette.accent};
+            }}
+            QComboBox::drop-down {{
                 border: none;
                 padding-right: 8px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #131b2a;
-                color: #f1f5f9;
-                selection-background-color: #1e293b;
-                selection-color: #ffffff;
-                border: 1px solid #1e293b;
-            }
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {self.palette.bg_card};
+                color: {self.palette.fg_primary};
+                selection-background-color: {self.palette.border_card};
+                selection-color: {self.palette.fg_primary};
+                border: 1px solid {self.palette.border_card};
+            }}
         """)
+        self.item_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.item_combo.setMinimumContentsLength(10)
+        self.item_combo.setMinimumWidth(1)
         self.item_combo.currentIndexChanged.connect(self.update_item_metadata)
         item_box.addWidget(self.item_combo)
 
         self.item_meta_lbl = QLabel("Select an artifact source above")
-        self.item_meta_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.item_meta_lbl.setWordWrap(True)
+        self.item_meta_lbl.setMinimumWidth(1)
+        self.item_meta_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         item_box.addWidget(self.item_meta_lbl)
         layout.addLayout(item_box)
 
@@ -501,32 +519,34 @@ class ContentPage(QWidget):
 
         inst_head = QHBoxLayout()
         inst_lbl = QLabel("TARGET DIRECTIVES")
-        inst_lbl.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
+        inst_lbl.setWordWrap(True)
+        inst_lbl.setMinimumWidth(1)
+        inst_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; background: transparent; border: none;")
         inst_head.addWidget(inst_lbl)
         inst_head.addStretch()
 
         self.inst_tok_lbl = QLabel("~0 tokens")
-        self.inst_tok_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.inst_tok_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         inst_head.addWidget(self.inst_tok_lbl)
         inst_box.addLayout(inst_head)
 
         self.instructions_input = QTextEdit()
         self.instructions_input.setPlaceholderText("e.g. Emphasize local SQLite architecture, target senior AI systems engineers, include a concise hook...")
         self.instructions_input.setPlainText("Highlight why local-first execution beats latency issues in cloud-only pipelines. Target principal AI systems engineers and maintain an authoritative, developer-centric tone.")
-        self.instructions_input.setStyleSheet("""
-            QTextEdit {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.instructions_input.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 8px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 padding: 10px;
                 line-height: 1.4;
-            }
-            QTextEdit:focus {
-                border-color: #2196f3;
-            }
+            }}
+            QTextEdit:focus {{
+                border-color: {self.palette.accent};
+            }}
         """)
         self.instructions_input.setMaximumHeight(85)
         self.instructions_input.textChanged.connect(self.update_inst_token_count)
@@ -535,12 +555,14 @@ class ContentPage(QWidget):
 
         inst_foot = QHBoxLayout()
         inst_style = QLabel("Style: High-impact technical hook")
-        inst_style.setStyleSheet("color: #64748b; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
+        inst_style.setWordWrap(True)
+        inst_style.setMinimumWidth(1)
+        inst_style.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 11px; background: transparent; border: none;")
         inst_foot.addWidget(inst_style)
         inst_foot.addStretch()
 
         clear_inst_btn = QPushButton("Reset")
-        clear_inst_btn.setStyleSheet("background: transparent; border: none; color: #2196f3; font-family: 'Inter', sans-serif; font-size: 11px; padding: 0;")
+        clear_inst_btn.setStyleSheet(f"background: transparent; border: none; color: {self.palette.accent}; font-family: 'Inter', sans-serif; font-size: 11px; padding: 0;")
         clear_inst_btn.clicked.connect(self.instructions_input.clear)
         inst_foot.addWidget(clear_inst_btn)
         inst_box.addLayout(inst_foot)
@@ -549,13 +571,13 @@ class ContentPage(QWidget):
 
         # 5. Posting Advisor Panel (Conditional LinkedIn)
         self.advisor_panel = QFrame()
-        self.advisor_panel.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.advisor_panel.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 10px;
                 padding: 12px;
-            }
+            }}
         """)
         adv_lay = QVBoxLayout(self.advisor_panel)
         adv_lay.setContentsMargins(12, 12, 12, 12)
@@ -563,31 +585,33 @@ class ContentPage(QWidget):
 
         adv_head = QHBoxLayout()
         adv_icon = QLabel()
-        adv_icon.setPixmap(get_svg_pixmap("brain", "#2196f3", 16))
+        adv_icon.setPixmap(get_svg_pixmap(f"brain", "{self.palette.accent}", 16))
         adv_icon.setStyleSheet("background: transparent; border: none;")
         adv_head.addWidget(adv_icon)
 
         adv_title = QLabel("Posting Advisor Engine")
-        adv_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
+        adv_title.setWordWrap(True)
+        adv_title.setMinimumWidth(1)
+        adv_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; background: transparent; border: none;")
         adv_head.addWidget(adv_title)
         adv_head.addStretch()
 
         self.advisor_btn = QPushButton(" Re-evaluate")
-        self.advisor_btn.setIcon(get_svg_icon("refresh", "#2196f3", 12))
-        self.advisor_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0b0f17;
-                border: 1px solid #1e293b;
+        self.advisor_btn.setIcon(get_svg_icon(f"refresh", "{self.palette.accent}", 12))
+        self.advisor_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #2196f3;
+                color: {self.palette.accent};
                 font-family: 'Inter', sans-serif;
                 font-size: 11px;
                 font-weight: 500;
                 padding: 4px 8px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+            }}
         """)
         self.advisor_btn.clicked.connect(self.run_advisor)
         adv_head.addWidget(self.advisor_btn)
@@ -595,13 +619,13 @@ class ContentPage(QWidget):
 
         # Verdict Badge
         self.advisor_verdict_badge = QLabel("READY TO EVALUATE")
-        self.advisor_verdict_badge.setStyleSheet("""
-            color: #94a3b8;
+        self.advisor_verdict_badge.setStyleSheet(f"""
+            color: {self.palette.fg_muted};
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             font-weight: 600;
-            background-color: #0b0f17;
-            border: 1px solid #1e293b;
+            background-color: {self.palette.bg_app};
+            border: 1px solid {self.palette.border_card};
             border-radius: 4px;
             padding: 4px 8px;
         """)
@@ -609,17 +633,18 @@ class ContentPage(QWidget):
 
         # Editorial Feedback Box
         self.advisor_feedback = QLabel("Click 'Re-evaluate' to generate AI critique and strategic angle.")
-        self.advisor_feedback.setStyleSheet("""
-            color: #94a3b8;
+        self.advisor_feedback.setStyleSheet(f"""
+            color: {self.palette.fg_muted};
             font-family: 'Inter', sans-serif;
             font-size: 12px;
             line-height: 1.4;
-            background-color: #0b0f17;
-            border: 1px solid #1e293b;
+            background-color: {self.palette.bg_app};
+            border: 1px solid {self.palette.border_card};
             border-radius: 6px;
             padding: 8px;
         """)
         self.advisor_feedback.setWordWrap(True)
+        self.advisor_feedback.setMinimumWidth(1)
         adv_lay.addWidget(self.advisor_feedback)
 
         layout.addWidget(self.advisor_panel)
@@ -629,100 +654,100 @@ class ContentPage(QWidget):
 
     def create_editor_panel(self) -> QWidget:
         panel = QWidget()
-        panel.setStyleSheet("background-color: #0b0f17;")
+        panel.setStyleSheet(f"background-color: {self.palette.bg_app};")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
 
         # Top Action Toolbar
         action_bar = QFrame()
-        action_bar.setStyleSheet("background-color: #0c0e14; border: 1px solid #1e293b; border-radius: 8px; padding: 6px;")
-        ab_layout = QHBoxLayout(action_bar)
+        action_bar.setStyleSheet(f"background-color: {self.palette.bg_app}; border: 1px solid {self.palette.border_card}; border-radius: 8px; padding: 6px;")
+        ab_layout = QVBoxLayout(action_bar)
         ab_layout.setContentsMargins(8, 4, 8, 4)
         ab_layout.setSpacing(10)
 
         # Primary Generate Button
         self.generate_btn = QPushButton(" Generate Content")
-        self.generate_btn.setIcon(get_svg_icon("sparkles", "#ffffff", 16))
-        self.generate_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        self.generate_btn.setIcon(get_svg_icon(f"sparkles", "{self.palette.fg_primary}", 16))
+        self.generate_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 6px;
-                color: #ffffff;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 padding: 8px 18px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-            QPushButton:disabled {
-                background-color: #1e293b;
-                color: #64748b;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.accent};
+            }}
+            QPushButton:disabled {{
+                background-color: {self.palette.border_card};
+                color: {self.palette.fg_muted};
+            }}
         """)
         self.generate_btn.clicked.connect(self.generate_content)
         ab_layout.addWidget(self.generate_btn)
 
         # Polish Tone Button
         self.polish_btn = QPushButton(" Polish Tone")
-        self.polish_btn.setIcon(get_svg_icon("auto_fix_high", "#99cbff", 14))
-        self.polish_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.polish_btn.setIcon(get_svg_icon(f"auto_fix_high", "{self.palette.accent}", 14))
+        self.polish_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 7px 14px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};
+                border-color: {self.palette.accent};
+            }}
         """)
         self.polish_btn.clicked.connect(self.polish_tone)
-        ab_layout.addWidget(self.polish_btn)
+        row2 = QHBoxLayout()
+        row2.addWidget(self.polish_btn)
 
         # Wipe Buffer Button
         clear_btn = QPushButton()
-        clear_btn.setIcon(get_svg_icon("delete", "#94a3b8", 14))
+        clear_btn.setIcon(get_svg_icon(f"delete", "{self.palette.fg_muted}", 14))
         clear_btn.setFixedSize(32, 32)
         clear_btn.setToolTip("Wipe Draft Buffer")
-        clear_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        clear_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: rgba(239, 68, 68, 0.15);
                 border-color: rgba(239, 68, 68, 0.4);
-            }
+            }}
         """)
         clear_btn.clicked.connect(self.clear_editor)
-        ab_layout.addWidget(clear_btn)
-
-        ab_layout.addStretch()
+        row2.addWidget(clear_btn)
+        ab_layout.addLayout(row2)
 
         self.save_status_lbl = QLabel("Draft ready")
-        self.save_status_lbl.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.save_status_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         ab_layout.addWidget(self.save_status_lbl)
 
         layout.addWidget(action_bar)
 
         # Document Surface Container
         doc_surface = QFrame()
-        doc_surface.setStyleSheet("""
-            QFrame {
-                background-color: #0c0e14;
-                border: 1px solid #1e293b;
+        doc_surface.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 10px;
-            }
+            }}
         """)
         ds_layout = QVBoxLayout(doc_surface)
         ds_layout.setContentsMargins(0, 0, 0, 0)
@@ -731,52 +756,52 @@ class ContentPage(QWidget):
         # Tabs Header
         tab_header = QFrame()
         tab_header.setFixedHeight(40)
-        tab_header.setStyleSheet("background-color: #131b2a; border-bottom: 1px solid #1e293b; border-top-left-radius: 10px; border-top-right-radius: 10px;")
+        tab_header.setStyleSheet(f"background-color: {self.palette.bg_card}; border-bottom: 1px solid {self.palette.border_card}; border-top-left-radius: 10px; border-top-right-radius: 10px;")
         th_layout = QHBoxLayout(tab_header)
         th_layout.setContentsMargins(12, 4, 12, 4)
         th_layout.setSpacing(8)
 
         self.btn_tab_raw = QPushButton(" Markdown Editor")
-        self.btn_tab_raw.setIcon(get_svg_icon("code", "#ffffff", 14))
+        self.btn_tab_raw.setIcon(get_svg_icon(f"code", "{self.palette.fg_primary}", 14))
         self.btn_tab_raw.setCheckable(True)
         self.btn_tab_raw.setChecked(True)
-        self.btn_tab_raw.setStyleSheet("""
-            QPushButton {
+        self.btn_tab_raw.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 border-radius: 4px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 5px 10px;
-            }
-            QPushButton:checked {
-                background-color: #0b0f17;
-                color: #2196f3;
-            }
+            }}
+            QPushButton:checked {{
+                background-color: {self.palette.bg_app};
+                color: {self.palette.accent};
+            }}
         """)
         self.btn_tab_raw.clicked.connect(lambda: self.switch_editor_tab(0))
         th_layout.addWidget(self.btn_tab_raw)
 
         self.btn_tab_preview = QPushButton(" Rich Preview")
-        self.btn_tab_preview.setIcon(get_svg_icon("description", "#94a3b8", 14))
+        self.btn_tab_preview.setIcon(get_svg_icon(f"description", "{self.palette.fg_muted}", 14))
         self.btn_tab_preview.setCheckable(True)
-        self.btn_tab_preview.setStyleSheet("""
-            QPushButton {
+        self.btn_tab_preview.setStyleSheet(f"""
+            QPushButton {{
                 background-color: transparent;
                 border: none;
                 border-radius: 4px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 5px 10px;
-            }
-            QPushButton:checked {
-                background-color: #0b0f17;
-                color: #2196f3;
-            }
+            }}
+            QPushButton:checked {{
+                background-color: {self.palette.bg_app};
+                color: {self.palette.accent};
+            }}
         """)
         self.btn_tab_preview.clicked.connect(lambda: self.switch_editor_tab(1))
         th_layout.addWidget(self.btn_tab_preview)
@@ -784,7 +809,7 @@ class ContentPage(QWidget):
         th_layout.addStretch()
 
         self.editor_stats_lbl = QLabel("0 words • 0 chars • 0 min read")
-        self.editor_stats_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.editor_stats_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         th_layout.addWidget(self.editor_stats_lbl)
 
         ds_layout.addWidget(tab_header)
@@ -794,32 +819,32 @@ class ContentPage(QWidget):
 
         self.editor = QTextEdit()
         self.editor.setPlaceholderText("Generated markdown content will appear here...")
-        self.editor.setStyleSheet("""
-            QTextEdit {
-                background-color: #0c0e14;
+        self.editor.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.palette.bg_app};
                 border: none;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 13px;
                 padding: 16px;
                 line-height: 1.6;
-            }
+            }}
         """)
         self.editor.textChanged.connect(self.update_editor_stats)
         self.editor_stack.addWidget(self.editor)
 
         self.preview_browser = QTextBrowser()
         self.preview_browser.setOpenExternalLinks(True)
-        self.preview_browser.setStyleSheet("""
-            QTextBrowser {
-                background-color: #0c0e14;
+        self.preview_browser.setStyleSheet(f"""
+            QTextBrowser {{
+                background-color: {self.palette.bg_app};
                 border: none;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 14px;
                 padding: 20px;
                 line-height: 1.6;
-            }
+            }}
         """)
         self.editor_stack.addWidget(self.preview_browser)
 
@@ -831,41 +856,41 @@ class ContentPage(QWidget):
         bottom_bar.setSpacing(10)
 
         copy_btn = QPushButton(" Copy to Clipboard")
-        copy_btn.setIcon(get_svg_icon("content_copy", "#2196f3", 14))
-        copy_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        copy_btn.setIcon(get_svg_icon(f"content_copy", "{self.palette.accent}", 14))
+        copy_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 7px 14px;
-            }
-            QPushButton:hover {
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                border-color: {self.palette.accent};
+            }}
         """)
         copy_btn.clicked.connect(self.copy_to_clipboard)
         bottom_bar.addWidget(copy_btn)
 
         export_md_btn = QPushButton(" Export .md")
-        export_md_btn.setIcon(get_svg_icon("download", "#94a3b8", 14))
-        export_md_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        export_md_btn.setIcon(get_svg_icon(f"download", "{self.palette.fg_muted}", 14))
+        export_md_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
                 border-radius: 6px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 padding: 7px 12px;
-            }
-            QPushButton:hover {
-                color: #f1f5f9;
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                color: {self.palette.fg_primary};
+                border-color: {self.palette.accent};
+            }}
         """)
         export_md_btn.clicked.connect(self.export_markdown)
         bottom_bar.addWidget(export_md_btn)
@@ -873,16 +898,16 @@ class ContentPage(QWidget):
         bottom_bar.addStretch()
 
         self.tokens_lbl = QLabel("~0 output tokens")
-        self.tokens_lbl.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.tokens_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         bottom_bar.addWidget(self.tokens_lbl)
 
         encoding_lbl = QLabel("UTF-8 • LF")
-        encoding_lbl.setStyleSheet("""
-            color: #64748b;
+        encoding_lbl.setStyleSheet(f"""
+            color: {self.palette.fg_muted};
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
-            background-color: #131b2a;
-            border: 1px solid #1e293b;
+            background-color: {self.palette.bg_card};
+            border: 1px solid {self.palette.border_card};
             border-radius: 4px;
             padding: 2px 6px;
         """)
@@ -1022,7 +1047,7 @@ class ContentPage(QWidget):
 
         self.advisor_btn.setEnabled(False)
         self.advisor_verdict_badge.setText("ANALYZING REPUTATIONAL VALUE...")
-        self.advisor_verdict_badge.setStyleSheet("""
+        self.advisor_verdict_badge.setStyleSheet(f"""
             color: #fbbf24;
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
@@ -1045,8 +1070,8 @@ class ContentPage(QWidget):
 
         if rec == "RECOMMENDED":
             self.advisor_verdict_badge.setText("RECOMMENDED: HIGH VALUE")
-            self.advisor_verdict_badge.setStyleSheet("""
-                color: #4edea3;
+            self.advisor_verdict_badge.setStyleSheet(f"""
+                color: {self.palette.success};
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 11px;
                 font-weight: 600;
@@ -1057,7 +1082,7 @@ class ContentPage(QWidget):
             """)
         elif "CHANGES" in rec:
             self.advisor_verdict_badge.setText("RECOMMENDED WITH CHANGES")
-            self.advisor_verdict_badge.setStyleSheet("""
+            self.advisor_verdict_badge.setStyleSheet(f"""
                 color: #fbbf24;
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 11px;
@@ -1069,7 +1094,7 @@ class ContentPage(QWidget):
             """)
         else:
             self.advisor_verdict_badge.setText("NOT RECOMMENDED")
-            self.advisor_verdict_badge.setStyleSheet("""
+            self.advisor_verdict_badge.setStyleSheet(f"""
                 color: #f87171;
                 font-family: 'JetBrains Mono', monospace;
                 font-size: 11px;
@@ -1099,7 +1124,7 @@ class ContentPage(QWidget):
         self.generate_btn.setEnabled(False)
         self.generate_btn.setText(" Generating...")
         self.save_status_lbl.setText("Generating...")
-        self.save_status_lbl.setStyleSheet("color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.save_status_lbl.setStyleSheet(f"color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
 
         worker = ContentGenWorker(self.generator, self.current_mode, source_type, item_id, inst)
         worker.signals.finished.connect(self.on_generate_done)
@@ -1110,7 +1135,7 @@ class ContentPage(QWidget):
         self.generate_btn.setEnabled(True)
         self.generate_btn.setText(" Generate Content")
         self.save_status_lbl.setText("Generated successfully")
-        self.save_status_lbl.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.save_status_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         self.editor.setPlainText(result)
         if self.editor_stack.currentIndex() == 1:
             self.preview_browser.setMarkdown(result)
@@ -1119,7 +1144,7 @@ class ContentPage(QWidget):
         self.generate_btn.setEnabled(True)
         self.generate_btn.setText(" Generate Content")
         self.save_status_lbl.setText("Generation error")
-        self.save_status_lbl.setStyleSheet("color: #f87171; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.save_status_lbl.setStyleSheet(f"color: #f87171; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         QMessageBox.critical(self, "Generation Failed", str(err))
 
     def polish_tone(self):
@@ -1193,3 +1218,86 @@ class ContentPage(QWidget):
 
     def minimumSizeHint(self):
         return QSize(350, 250)
+
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        
+        # Save state
+        mode = getattr(self, "current_mode", "LinkedIn Post")
+        cat = getattr(self, "current_source_category", "Project")
+        item_idx = self.item_combo.currentIndex() if hasattr(self, "item_combo") else -1
+        inst_text = self.instructions_input.toPlainText() if hasattr(self, "instructions_input") else ""
+        editor_text = self.editor.toPlainText() if hasattr(self, "editor") else ""
+        active_tab = self.editor_stack.currentIndex() if hasattr(self, "editor_stack") else 0
+        
+        # Clear layout
+        layout = self.layout()
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.setParent(None)
+                    widget.deleteLater()
+                    
+        # Rebuild UI
+        header_banner = self.create_top_header()
+        layout.addWidget(header_banner)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background-color: {self.palette.border_card};
+                width: 1px;
+            }}
+        """)
+
+        left_panel = self.create_config_panel()
+        scroll_config = QScrollArea()
+        scroll_config.setWidgetResizable(True)
+        scroll_config.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_config.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_config.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_config.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {self.palette.bg_app};
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background: transparent;
+                width: 4px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {self.palette.border_card};
+                border-radius: 2px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {self.palette.accent};
+            }}
+        """)
+        scroll_config.setWidget(left_panel)
+        scroll_config.setMinimumWidth(150)
+        splitter.addWidget(scroll_config)
+
+        right_panel = self.create_editor_panel()
+        right_panel.setMinimumWidth(280)
+        splitter.addWidget(right_panel)
+
+        splitter.setSizes([260, 540])
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 2)
+
+        layout.addWidget(splitter, stretch=1)
+
+        # Restore state
+        self.set_target_format(mode)
+        if mode != "GitHub README":
+            self.set_source_category(cat)
+            
+        if item_idx != -1 and item_idx < self.item_combo.count():
+            self.item_combo.setCurrentIndex(item_idx)
+            
+        self.instructions_input.setPlainText(inst_text)
+        self.editor.setPlainText(editor_text)
+        self.switch_editor_tab(active_tab)

@@ -5,9 +5,11 @@ import logging
 
 logger = logging.getLogger("ForgeHub.Database")
 
+from app.core.paths import get_db_path
+
 class DatabaseManager:
-    def __init__(self, db_path="database/forgehub.db"):
-        self.db_path = Path(db_path)
+    def __init__(self, db_path=None):
+        self.db_path = get_db_path() if db_path is None else Path(db_path)
         self.db_path.parent.mkdir(exist_ok=True, parents=True)
         
     @contextmanager

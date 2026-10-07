@@ -1,6 +1,10 @@
+import os
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QStackedWidget, QLabel
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QGuiApplication
+from app.core.palette import ColorPalette, get_current_palette
+from app.core.theme import theme_manager
 from app.ui.components.sidebar import Sidebar
 from app.ui.pages.dashboard import DashboardPage
 from app.ui.pages.projects import ProjectsPage
@@ -40,7 +44,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.config = config
         self.db_manager = db_manager
-        self.setWindowTitle(f"{config.get('app_name', 'Forge Hub')} v{config.get('version', '0.1.0')}")
+        self.setWindowTitle("ForgeHub")
+        icon_path = os.path.abspath("forge_hub_logo.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         
         # Allow shrinking down to compact laptops/screens
         self.setMinimumSize(720, 480)
@@ -66,73 +74,12 @@ class MainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         
-        # Window styling
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #0b0f17;
-            }
-            QStatusBar {
-                background-color: #0b0f17;
-                color: #94a3b8;
-                border-top: 1px solid #1e293b;
-                border-bottom: none;
-                border-left: none;
-                border-right: none;
-                font-size: 11px;
-                padding-left: 12px;
-            }
-            QStatusBar::item {
-                border: none;
-            }
-            QScrollBar:vertical {
-                background: transparent;
-                width: 5px;
-                margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: #1e293b;
-                border-radius: 2px;
-                min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #334155;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-                background: none;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
-            QScrollBar:horizontal {
-                background: transparent;
-                height: 5px;
-                margin: 0px;
-            }
-            QScrollBar::handle:horizontal {
-                background: #1e293b;
-                border-radius: 2px;
-                min-width: 20px;
-            }
-            QScrollBar::handle:horizontal:hover {
-                background: #334155;
-            }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-                width: 0px;
-                background: none;
-            }
-            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-                background: none;
-            }
-        """)
-        
         # Sidebar
         self.sidebar = Sidebar()
         self.main_layout.addWidget(self.sidebar)
         
         # Stacked Widget for pages
         self.stacked_widget = AdaptiveStackedWidget()
-        self.stacked_widget.setStyleSheet("background-color: #0b0f17;")
         self.main_layout.addWidget(self.stacked_widget)
         
         self.setup_pages()
@@ -143,7 +90,6 @@ class MainWindow(QMainWindow):
         # Initialize Status Bar
         self.status_bar = self.statusBar()
         self.status_label = ClickableLabel("AI Status: Ready")
-        self.status_label.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: 500;")
         self.status_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.status_label.clicked.connect(lambda: self.on_page_selected(6)) # Navigate to AI Providers
         self.status_bar.addWidget(self.status_label)
@@ -151,9 +97,66 @@ class MainWindow(QMainWindow):
         # Connect AI providers page to status updates
         self.providers_page.status_updated.connect(self.status_label.setText)
 
+        # Apply initial color palette & connect live theme dispatcher
+        self.apply_theme_colors(get_current_palette())
+        theme_manager.theme_changed.connect(lambda name, pal: self.apply_theme_colors(pal))
+
+    def apply_theme_colors(self, palette: ColorPalette):
+        from PySide6.QtGui import QPalette, QColor
+        p = self.palette()
+        p.setColor(QPalette.ColorRole.Window, QColor(palette.bg_app))
+        self.setPalette(p)
+        self.central_widget.setPalette(p)
+        self.central_widget.setStyleSheet(f"background-color: {palette.bg_app};")
+        self.stacked_widget.setStyleSheet(f"background-color: {palette.bg_app};")
+
+        self.status_bar.setStyleSheet(f"""
+            QStatusBar {{
+                background-color: {palette.bg_app};
+                color: {palette.fg_muted};
+                border-top: 1px solid {palette.border_subtle};
+                border-bottom: none;
+                border-left: none;
+                border-right: none;
+                font-size: 11px;
+                padding-left: 12px;
+            }}
+            QStatusBar::item {{
+                border: none;
+            }}
+        """)
+        if hasattr(self, "status_label"):
+            self.status_label.setStyleSheet(f"color: {palette.fg_muted}; font-size: 11px; font-weight: 500;")
+
+        # Dispatch theme colors to the active page immediately
+        active_page = self.stacked_widget.currentWidget()
+        if hasattr(active_page, "apply_theme_colors"):
+            try:
+                active_page.apply_theme_colors(palette)
+            except Exception:
+                pass
+        else:
+            active_page.setStyleSheet(f"background-color: {palette.bg_app};")
+            
+        # Store the current palette so pages can update lazily when selected
+        self._pending_theme_palette = palette
+
     def on_page_selected(self, index):
         self.stacked_widget.setCurrentIndex(index)
         self.sidebar.select_page(index)
+        
+        # Lazy theme update for the selected page
+        if hasattr(self, "_pending_theme_palette"):
+            page = self.stacked_widget.widget(index)
+            # Only update if the page's palette doesn't match the pending one
+            if getattr(page, "palette", None) != self._pending_theme_palette:
+                if hasattr(page, "apply_theme_colors"):
+                    try:
+                        page.apply_theme_colors(self._pending_theme_palette)
+                    except Exception:
+                        pass
+                else:
+                    page.setStyleSheet(f"background-color: {self._pending_theme_palette.bg_app};")
 
     def setup_pages(self):
         self.dashboard_page = DashboardPage(self.db_manager)

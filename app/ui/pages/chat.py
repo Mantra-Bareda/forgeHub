@@ -1,6 +1,6 @@
 import html
 from datetime import datetime
-from PySide6.QtWidgets import (
+from PySide6.QtWidgets import ( QListWidget, QListWidgetItem, QDialog, 
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QTextBrowser, QScrollArea, QFrame, QMessageBox,
     QSizePolicy, QGraphicsOpacityEffect
@@ -10,6 +10,8 @@ from PySide6.QtGui import QShortcut, QKeySequence, QGuiApplication
 from database.repository import ChatRepository, ProfileRepository
 from app.ai import ModelRouter
 from app.ui.components.icons import get_svg_icon, get_svg_pixmap
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 
 
 def setup_page_animation(widget: QWidget):
@@ -28,12 +30,16 @@ def setup_page_animation(widget: QWidget):
 class InsightsPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.palette = get_current_palette()
+        self.palette = get_current_palette()
+        self.palette = get_current_palette()
+        self.palette = get_current_palette()
         self.expanded = False
-        self.setStyleSheet("""
-            InsightsPanel {
-                background-color: #0c0e14;
-                border-bottom: 1px solid #1e293b;
-            }
+        self.setStyleSheet(f"""
+            InsightsPanel {{
+                background-color: {self.palette.bg_app};
+                border-bottom: 1px solid {self.palette.border_card};")
+            }}
         """)
 
         self.layout = QVBoxLayout(self)
@@ -43,17 +49,17 @@ class InsightsPanel(QFrame):
         # Header
         top = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(get_svg_pixmap("brain", "#4edea3", 18))
+        icon.setPixmap(get_svg_pixmap("brain", f"{self.palette.success}", 18))
         icon.setStyleSheet("background: transparent; border: none;")
         top.addWidget(icon)
 
         title = QLabel("AI Router Insights & Strategy")
-        title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
+        title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; background: transparent; border: none;")
         top.addWidget(title)
         top.addStretch()
 
         self.model_lbl = QLabel("Active Model: Dynamic Multi-Model Router")
-        self.model_lbl.setStyleSheet("color: #4edea3; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.model_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         top.addWidget(self.model_lbl)
         self.layout.addLayout(top)
 
@@ -73,16 +79,16 @@ class InsightsPanel(QFrame):
         # Detailed Markdown Body
         self.body_browser = QTextBrowser()
         self.body_browser.setMaximumHeight(90)
-        self.body_browser.setStyleSheet("""
-            QTextBrowser {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.body_browser.setStyleSheet(f"""
+            QTextBrowser {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
                 border-radius: 8px;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
                 padding: 8px;
-            }
+            }}
         """)
         self.layout.addWidget(self.body_browser)
 
@@ -95,24 +101,24 @@ class InsightsPanel(QFrame):
 
     def create_insight_card(self, title: str, text: str) -> QFrame:
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        card.setStyleSheet(f"""
+            QFrame {{{{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
                 border-radius: 8px;
                 padding: 10px;
-            }
+            }}
         """)
         lay = QVBoxLayout(card)
         lay.setContentsMargins(10, 8, 10, 8)
         lay.setSpacing(4)
 
         t = QLabel(title)
-        t.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; background: transparent; border: none;")
+        t.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; background: transparent; border: none;")
         lay.addWidget(t)
 
         v = QLabel(text)
-        v.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; background: transparent; border: none;")
+        v.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; background: transparent; border: none;")
         v.setWordWrap(True)
         lay.addWidget(v)
         card._val_label = v
@@ -149,6 +155,54 @@ class InsightsPanel(QFrame):
                 pass
 
 
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.setStyleSheet(f"""
+            InsightsPanel {{
+                background-color: {self.palette.bg_app};
+                border-bottom: 1px solid {self.palette.border_card};")
+            }}
+        """)
+        
+        # We need to update all labels and cards. Instead of keeping track of everything, we can do this via generic rules or by tracking children.
+        # But wait, looking at the init, it's easier to just iterate over children.
+        # Actually, let's keep it simple: we can set a global stylesheet on the widget itself that styles QLabel and QFrame.
+        
+        self.body_browser.setStyleSheet(f"""
+            QTextBrowser {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
+                border-radius: 8px;
+                color: {self.palette.fg_muted};
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                padding: 8px;
+            }}
+        """)
+        
+        # For the model_lbl:
+        self.model_lbl.setStyleSheet(f"color: {self.palette.success}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        
+        # For the cards:
+        card_style = f"""
+            QFrame {{{{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
+                border-radius: 8px;
+                padding: 10px;
+            }}
+        """
+        self.card1.setStyleSheet(card_style)
+        self.card2.setStyleSheet(card_style)
+        self.card3.setStyleSheet(card_style)
+        
+        # And update child labels of cards
+        for card in [self.card1, self.card2, self.card3]:
+            labels = card.findChildren(QLabel)
+            if len(labels) >= 2:
+                labels[0].setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; background: transparent; border: none;")
+                labels[1].setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; background: transparent; border: none;")
+
 class ChatWorkerSignals(QObject):
     finished = Signal(str, dict)
     error = Signal(str)
@@ -179,6 +233,8 @@ class ChatWorker(QRunnable):
 class ChatMessageWidget(QFrame):
     def __init__(self, role: str, content: str, metadata: dict = None, parent=None):
         super().__init__(parent)
+        self.role = role
+        self.palette = get_current_palette()
         self.setStyleSheet("background: transparent; border: none;")
 
         root_layout = QVBoxLayout(self)
@@ -193,12 +249,12 @@ class ChatMessageWidget(QFrame):
             top_meta.addStretch()
 
             lbl_user = QLabel(f"You • {time_str}")
-            lbl_user.setStyleSheet("color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            lbl_user.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             top_meta.addWidget(lbl_user)
 
             dot = QFrame()
             dot.setFixedSize(6, 6)
-            dot.setStyleSheet("background-color: #4edea3; border-radius: 3px;")
+            dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 3px;")
             top_meta.addWidget(dot)
             root_layout.addLayout(top_meta)
 
@@ -206,18 +262,18 @@ class ChatMessageWidget(QFrame):
             bubble_row.addStretch()
 
             bubble = QFrame()
-            bubble.setStyleSheet("""
-                QFrame {
-                    background-color: #1e293b;
-                    border: 1px solid #334155;
+            bubble.setStyleSheet(f"""
+                QFrame {{{{
+                    background-color: {self.palette.border_card};")
+                    border: 1px solid {self.palette.border_card};")
                     border-radius: 12px;
-                }
+                }}
             """)
             b_lay = QVBoxLayout(bubble)
             b_lay.setContentsMargins(14, 10, 14, 10)
 
             msg_lbl = QLabel(content)
-            msg_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; background: transparent; border: none;")
+            msg_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; background: transparent; border: none;")
             msg_lbl.setWordWrap(True)
             msg_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             b_lay.addWidget(msg_lbl)
@@ -230,7 +286,7 @@ class ChatMessageWidget(QFrame):
             top_meta = QHBoxLayout()
             dot = QFrame()
             dot.setFixedSize(6, 6)
-            dot.setStyleSheet("background-color: #2196f3; border-radius: 3px;")
+            dot.setStyleSheet(f"background-color: {self.palette.accent}; border-radius: 3px;")
             top_meta.addWidget(dot)
 
             provider = metadata.get("provider", "Forge AI") if metadata else "Forge Hub AI"
@@ -238,7 +294,7 @@ class ChatMessageWidget(QFrame):
             model_text = f"{provider} ({model})" if model else provider
 
             lbl_ai = QLabel(f"{model_text} • {time_str}")
-            lbl_ai.setStyleSheet("color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            lbl_ai.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
             top_meta.addWidget(lbl_ai)
             top_meta.addStretch()
             root_layout.addLayout(top_meta)
@@ -246,12 +302,12 @@ class ChatMessageWidget(QFrame):
             bubble_row = QHBoxLayout()
 
             bubble = QFrame()
-            bubble.setStyleSheet("""
-                QFrame {
-                    background-color: #131b2a;
-                    border: 1px solid #1e293b;
+            bubble.setStyleSheet(f"""
+                QFrame {{{{
+                    background-color: {self.palette.bg_card};
+                    border: 1px solid {self.palette.border_card};")
                     border-radius: 12px;
-                }
+                }}
             """)
             b_lay = QVBoxLayout(bubble)
             b_lay.setContentsMargins(16, 14, 16, 14)
@@ -260,15 +316,15 @@ class ChatMessageWidget(QFrame):
             browser = QTextBrowser()
             browser.setOpenExternalLinks(True)
             browser.setMarkdown(content)
-            browser.setStyleSheet("""
-                QTextBrowser {
+            browser.setStyleSheet(f"""
+                QTextBrowser {{
                     background-color: transparent;
                     border: none;
-                    color: #f1f5f9;
+                    color: {self.palette.fg_primary};
                     font-family: 'Inter', sans-serif;
                     font-size: 13px;
                     line-height: 1.6;
-                }
+                }}
             """)
             # Adjust height to document size
             browser.document().adjustSize()
@@ -288,24 +344,24 @@ class ChatMessageWidget(QFrame):
                 meta_txt = "Synchronized via Local Workspace Context"
 
             footer_lbl = QLabel(meta_txt)
-            footer_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 10px; background: transparent; border: none;")
+            footer_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 10px; background: transparent; border: none;")
             footer.addWidget(footer_lbl)
             footer.addStretch()
 
             copy_btn = QPushButton(" Copy")
-            copy_btn.setIcon(get_svg_icon("content_copy", "#94a3b8", 12))
-            copy_btn.setStyleSheet("""
-                QPushButton {
+            copy_btn.setIcon(get_svg_icon("content_copy", f"{self.palette.fg_muted}", 12))
+            copy_btn.setStyleSheet(f"""
+                QPushButton {{
                     background: transparent;
                     border: none;
-                    color: #94a3b8;
+                    color: {self.palette.fg_muted};
                     font-family: 'Inter', sans-serif;
                     font-size: 11px;
                     padding: 2px 6px;
-                }
-                QPushButton:hover {
-                    color: #f1f5f9;
-                }
+                }}
+                QPushButton:hover {{
+                    color: {self.palette.fg_primary};
+                }}
             """)
             copy_btn.clicked.connect(lambda: self.copy_content(content))
             footer.addWidget(copy_btn)
@@ -319,6 +375,76 @@ class ChatMessageWidget(QFrame):
         cb = QGuiApplication.clipboard()
         cb.setText(text)
 
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        dots = [w for w in self.findChildren(QFrame) if w.width() == 6 and w.height() == 6]
+        for dot in dots:
+            if self.role == "user":
+                dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 3px;")
+            else:
+                dot.setStyleSheet(f"background-color: {self.palette.accent}; border-radius: 3px;")
+                
+        frames = self.findChildren(QFrame)
+        for frame in frames:
+            if frame is self or frame in dots:
+                continue
+            if self.role == "user":
+                frame.setStyleSheet(f"""
+                    QFrame {{{{
+                        background-color: {self.palette.border_card};")
+                        border: 1px solid {self.palette.border_card};")
+                        border-radius: 12px;
+                    }}
+                """)
+            else:
+                frame.setStyleSheet(f"""
+                    QFrame {{{{
+                        background-color: {self.palette.bg_card};
+                        border: 1px solid {self.palette.border_card};")
+                        border-radius: 12px;
+                    }}
+                """)
+
+        labels = self.findChildren(QLabel)
+        for lbl in labels:
+            text = lbl.text()
+            if "•" in text and ("You" in text or "AI" in text or "Forge" in text or "Router" in text or "(" in text):
+                lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+            elif "Task:" in text or "Synchronized" in text:
+                lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 10px; background: transparent; border: none;")
+            else:
+                lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; background: transparent; border: none;")
+                
+        browsers = self.findChildren(QTextBrowser)
+        for browser in browsers:
+            browser.setStyleSheet(f"""
+                QTextBrowser {{
+                    background-color: transparent;
+                    border: none;
+                    color: {self.palette.fg_primary};
+                    font-family: 'Inter', sans-serif;
+                    font-size: 13px;
+                    line-height: 1.6;
+                }}
+            """)
+            
+        buttons = self.findChildren(QPushButton)
+        for btn in buttons:
+            btn.setIcon(get_svg_icon("content_copy", f"{self.palette.fg_muted}", 12))
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent;
+                    border: none;
+                    color: {self.palette.fg_muted};
+                    font-family: 'Inter', sans-serif;
+                    font-size: 11px;
+                    padding: 2px 6px;
+                }}
+                QPushButton:hover {{
+                    color: {self.palette.fg_primary};
+                }}
+            """)
 
 class BackgroundExtractor(QRunnable):
     def __init__(self, db_mgr, hist):
@@ -338,6 +464,10 @@ class BackgroundExtractor(QRunnable):
 class AIChatPage(QWidget):
     def __init__(self, db_manager, chat_context="general"):
         super().__init__()
+        self.palette = get_current_palette()
+        self.palette = get_current_palette()
+        self.palette = get_current_palette()
+        self.palette = get_current_palette()
         self.db = db_manager
         self.repo = ChatRepository(self.db)
         self.chat_context = chat_context
@@ -364,26 +494,26 @@ class AIChatPage(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
-                background-color: #0b0f17;
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {self.palette.bg_app};
                 border: none;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical {{
                 background: transparent;
                 width: 4px;
-            }
-            QScrollBar::handle:vertical {
-                background: #1e293b;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {self.palette.border_card};")
                 border-radius: 2px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #2196f3;
-            }
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {self.palette.accent};
+            }}
         """)
 
         self.history_container = QWidget()
-        self.history_container.setStyleSheet("background-color: #0b0f17;")
+        self.history_container.setStyleSheet(f"background-color: {self.palette.bg_app};")
         self.history_layout = QVBoxLayout(self.history_container)
         self.history_layout.setContentsMargins(32, 20, 32, 20)
         self.history_layout.setSpacing(16)
@@ -409,11 +539,11 @@ class AIChatPage(QWidget):
         bar = QFrame()
         bar.setMinimumWidth(0)
         bar.setFixedHeight(50)
-        bar.setStyleSheet("""
-            QFrame {
-                background-color: #0c0e14;
-                border-bottom: 1px solid #1e293b;
-            }
+        bar.setStyleSheet(f"""
+            QFrame {{{{
+                background-color: {self.palette.bg_app};
+                border-bottom: 1px solid {self.palette.border_card};")
+            }}
         """)
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(14, 0, 14, 0)
@@ -424,27 +554,27 @@ class AIChatPage(QWidget):
         title_box.setSpacing(8)
 
         icon_lbl = QLabel()
-        icon_lbl.setPixmap(get_svg_pixmap("chat", "#2196f3", 18))
+        icon_lbl.setPixmap(get_svg_pixmap("chat", f"{self.palette.accent}", 18))
         icon_lbl.setStyleSheet("background: transparent; border: none;")
         title_box.addWidget(icon_lbl)
 
         ws_title = QLabel("AI Workspace")
-        ws_title.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; background: transparent; border: none;")
+        ws_title.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; background: transparent; border: none;")
         title_box.addWidget(ws_title)
 
         slash = QLabel("/")
-        slash.setStyleSheet("color: #475569; font-size: 13px; background: transparent; border: none;")
+        slash.setStyleSheet(f"color: {self.palette.fg_muted}; font-size: 13px; background: transparent; border: none;")
         title_box.addWidget(slash)
 
         # Context Indicator Pill
         self.context_pill = QFrame()
-        self.context_pill.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.context_pill.setStyleSheet(f"""
+            QFrame {{{{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
                 border-radius: 12px;
                 padding: 2px 8px;
-            }
+            }}
         """)
         cp_lay = QHBoxLayout(self.context_pill)
         cp_lay.setContentsMargins(6, 2, 6, 2)
@@ -452,75 +582,71 @@ class AIChatPage(QWidget):
 
         dot = QFrame()
         dot.setFixedSize(6, 6)
-        dot.setStyleSheet("background-color: #4edea3; border-radius: 3px;")
+        dot.setStyleSheet(f"background-color: {self.palette.success}; border-radius: 3px;")
         cp_lay.addWidget(dot)
-
-        self.context_lbl = QLabel(f"{self.chat_context.capitalize()} • Router")
-        self.context_lbl.setStyleSheet("color: #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
-        cp_lay.addWidget(self.context_lbl)
-        title_box.addWidget(self.context_pill)
 
         layout.addLayout(title_box)
         layout.addStretch()
 
         # Right Action Buttons
         self.insights_toggle_btn = QPushButton(" Insights ✨")
-        self.insights_toggle_btn.setIcon(get_svg_icon("sparkles", "#4edea3", 13))
-        self.insights_toggle_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.insights_toggle_btn.setIcon(get_svg_icon("sparkles", f"{self.palette.success}", 13))
+        self.insights_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
                 border-radius: 12px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 11px;
                 font-weight: 500;
                 padding: 4px 10px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-                border-color: #2196f3;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};")
+                border-color: {self.palette.accent};
+            }}
         """)
         self.insights_toggle_btn.clicked.connect(self.toggle_insights)
         layout.addWidget(self.insights_toggle_btn)
 
-        toggle_ctx_btn = QPushButton(" Context")
-        toggle_ctx_btn.setIcon(get_svg_icon("swap_horiz", "#94a3b8", 13))
-        toggle_ctx_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        self.history_btn = QPushButton(" Old Chats")
+        self.history_btn.setIcon(get_svg_icon("restore", f"{self.palette.fg_primary}", 13))
+        self.history_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
                 border-radius: 6px;
-                color: #94a3b8;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 11px;
-                padding: 4px 8px;
-            }
-            QPushButton:hover {
-                color: #f1f5f9;
-                border-color: #2196f3;
-            }
+                font-weight: 500;
+                padding: 4px 10px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.border_card};")
+                border-color: {self.palette.accent};
+            }}
         """)
-        toggle_ctx_btn.clicked.connect(self.cycle_context)
-        layout.addWidget(toggle_ctx_btn)
+        self.history_btn.clicked.connect(self.show_history_dialog)
+        layout.addWidget(self.history_btn)
 
-        new_sess_btn = QPushButton(" New")
-        new_sess_btn.setIcon(get_svg_icon("refresh", "#ffffff", 13))
-        new_sess_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        new_sess_btn = QPushButton(" New Chat")
+        new_sess_btn.setIcon(get_svg_icon("refresh", f"{self.palette.fg_primary}", 13))
+        new_sess_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 6px;
-                color: #ffffff;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 11px;
                 font-weight: 600;
                 padding: 4px 10px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.accent};
+            }}
         """)
         new_sess_btn.clicked.connect(self.new_session)
         layout.addWidget(new_sess_btn)
@@ -529,11 +655,11 @@ class AIChatPage(QWidget):
 
     def create_input_dock(self) -> QFrame:
         dock = QFrame()
-        dock.setStyleSheet("""
-            QFrame {
-                background-color: #0c0e14;
-                border-top: 1px solid #1e293b;
-            }
+        dock.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.palette.bg_app};
+                border-top: 1px solid {self.palette.border_card};")
+            }}
         """)
         layout = QVBoxLayout(dock)
         layout.setContentsMargins(32, 14, 32, 12)
@@ -541,15 +667,15 @@ class AIChatPage(QWidget):
 
         # Input box with inside button
         input_container = QFrame()
-        input_container.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
+        input_container.setStyleSheet(f"""
+            QFrame {{{{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};")
                 border-radius: 12px;
-            }
-            QFrame:focus-within {
-                border-color: #2196f3;
-            }
+            }}
+            QFrame:focus-within {{
+                border-color: {self.palette.accent};
+            }}
         """)
         ic_layout = QHBoxLayout(input_container)
         ic_layout.setContentsMargins(14, 8, 10, 8)
@@ -558,38 +684,43 @@ class AIChatPage(QWidget):
         self.input_box = QTextEdit()
         self.input_box.setPlaceholderText("Ask Forge Hub for help with your projects... (Ctrl+Enter to send)")
         self.input_box.setFixedHeight(48)
-        self.input_box.setStyleSheet("""
-            QTextEdit {
+        self.input_box.setStyleSheet(f"""
+            QTextEdit {{
                 background: transparent;
                 border: none;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 line-height: 1.4;
-            }
+            }}
         """)
+        # Ensure placeholder color is handled gracefully
+        palette = self.input_box.palette()
+        from PySide6.QtGui import QColor
+        palette.setColor(self.input_box.backgroundRole(), QColor(0, 0, 0, 0))
+        self.input_box.setPalette(palette)
         ic_layout.addWidget(self.input_box, stretch=1)
 
         self.send_btn = QPushButton(" Send")
-        self.send_btn.setIcon(get_svg_icon("send", "#ffffff", 14))
-        self.send_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        self.send_btn.setIcon(get_svg_icon("send", f"{self.palette.fg_primary}", 14))
+        self.send_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 8px;
-                color: #ffffff;
+                color: {self.palette.fg_primary};
                 font-family: 'Inter', sans-serif;
                 font-size: 13px;
                 font-weight: 600;
                 padding: 8px 18px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-            QPushButton:disabled {
-                background-color: #1e293b;
-                color: #64748b;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.palette.accent};
+            }}
+            QPushButton:disabled {{
+                background-color: {self.palette.border_card};")
+                color: {self.palette.fg_muted};
+            }}
         """)
         self.send_btn.clicked.connect(self.send_message)
         ic_layout.addWidget(self.send_btn)
@@ -600,12 +731,12 @@ class AIChatPage(QWidget):
         telemetry.setSpacing(12)
 
         self.model_status_lbl = QLabel("Model: Auto-routed • Router: Active")
-        self.model_status_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        self.model_status_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         telemetry.addWidget(self.model_status_lbl)
         telemetry.addStretch()
 
         feat_lbl = QLabel("Markdown • Code Highlighting Enabled")
-        feat_lbl.setStyleSheet("color: #64748b; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
+        feat_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent; border: none;")
         telemetry.addWidget(feat_lbl)
         layout.addLayout(telemetry)
 
@@ -618,26 +749,80 @@ class AIChatPage(QWidget):
         else:
             self.insights_toggle_btn.setText(" View AI Insights ✨")
 
-    def cycle_context(self):
-        contexts = ["general", "linkedin", "github"]
-        idx = contexts.index(self.chat_context) if self.chat_context in contexts else 0
-        new_ctx = contexts[(idx + 1) % len(contexts)]
-        self.set_chat_context(new_ctx)
-
-    def set_chat_context(self, new_context: str):
-        self.chat_context = new_context
-        self.context_lbl.setText(f"{self.chat_context.capitalize()} • Dynamic AI Router")
+    def set_project(self, project_id: int):
+        self.project_id = project_id
+        self.current_session_id = None
         self.load_history()
 
+    def show_history_dialog(self):
+        sessions = self.repo.get_chat_sessions(project_id=getattr(self, 'project_id', None), chat_context=self.chat_context)
+        if not sessions:
+            QMessageBox.information(self, "No History", "There are no old chats available for this context.")
+            return
+            
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Old Chats")
+        dialog.setMinimumSize(400, 300)
+        dialog.setStyleSheet(f"background-color: {self.palette.bg_app}; color: {self.palette.fg_primary};")
+        
+        layout = QVBoxLayout(dialog)
+        
+        list_widget = QListWidget()
+        list_widget.setStyleSheet(f"""
+            QListWidget {{
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_card};")
+                border-radius: 6px;
+                outline: none;
+            }}
+            QListWidget::item {{
+                padding: 12px;
+                border-bottom: 1px solid {self.palette.border_card};")
+            }}
+            QListWidget::item:selected {{
+                background-color: {self.palette.accent_bg};
+                color: {self.palette.fg_primary};
+            }}
+        """)
+        
+        for sess in sessions:
+            first_msg = sess['content']
+            # Take first 5-8 words
+            words = first_msg.split()
+            title = " ".join(words[:8]) + ("..." if len(words) > 8 else "")
+            
+            item = QListWidgetItem(title)
+            item.setData(Qt.ItemDataRole.UserRole, sess['session_id'])
+            list_widget.addItem(item)
+            
+        layout.addWidget(list_widget)
+        
+        btn_layout = QHBoxLayout()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setStyleSheet(f"background-color: {self.palette.bg_card}; padding: 6px 14px; border-radius: 4px;")
+        cancel_btn.clicked.connect(dialog.reject)
+        
+        load_btn = QPushButton("Load Selected")
+        load_btn.setStyleSheet(f"background-color: {self.palette.accent}; color: {self.palette.bg_app}; padding: 6px 14px; border-radius: 4px; font-weight: bold;")
+        load_btn.clicked.connect(dialog.accept)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(cancel_btn)
+        btn_layout.addWidget(load_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected_items = list_widget.selectedItems()
+            if selected_items:
+                session_id = selected_items[0].data(Qt.ItemDataRole.UserRole)
+                self.current_session_id = session_id
+                self.load_history()
+
     def new_session(self):
-        reply = QMessageBox.question(
-            self, "New Session",
-            f"Clear chat history for the '{self.chat_context.capitalize()}' workspace context?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            self.repo.clear_history(chat_context=self.chat_context)
-            self.load_history()
+        import uuid
+        self.current_session_id = str(uuid.uuid4())
+        self.load_history()
 
     def load_insights(self):
         repo = ProfileRepository(self.db)
@@ -680,23 +865,24 @@ class AIChatPage(QWidget):
 
         icon_frame = QFrame()
         icon_frame.setFixedSize(48, 48)
-        icon_frame.setStyleSheet("background-color: #131b2a; border-radius: 24px; border: 1px solid #1e293b;")
+        icon_frame.setStyleSheet(f"background-color: {self.palette.bg_card}; border-radius: 24px; border: 1px solid {self.palette.border_card};")
+
         if_lay = QVBoxLayout(icon_frame)
         if_lay.setContentsMargins(0, 0, 0, 0)
         i_lbl = QLabel()
-        i_lbl.setPixmap(get_svg_pixmap("chat", "#2196f3", 24))
+        i_lbl.setPixmap(get_svg_pixmap("chat", f"{self.palette.accent}", 24))
         i_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         i_lbl.setStyleSheet("background: transparent; border: none;")
         if_lay.addWidget(i_lbl)
         eb_layout.addWidget(icon_frame, alignment=Qt.AlignmentFlag.AlignCenter)
 
         t_lbl = QLabel("Forge Hub AI Assistance Initialized")
-        t_lbl.setStyleSheet("color: #f1f5f9; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        t_lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
         t_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         eb_layout.addWidget(t_lbl)
 
         s_lbl = QLabel("Your chat workspace is securely synced with local context. Ask questions, generate content, or inspect code.")
-        s_lbl.setStyleSheet("color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+        s_lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
         s_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         eb_layout.addWidget(s_lbl)
 
@@ -708,9 +894,9 @@ class AIChatPage(QWidget):
         QTimer.singleShot(60, lambda: self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))
 
     def get_recent_context(self):
-        history = self.repo.get_chat_history(limit=6, chat_context=self.chat_context)
+        history = self.repo.get_chat_history(limit=6, project_id=getattr(self, 'project_id', None), chat_context=self.chat_context, session_id=getattr(self, 'current_session_id', None))
         context_str = ""
-        for msg in history:
+        for msg in reversed(history):
             context_str += f"{msg['role'].upper()}: {msg['content']}\n"
         return context_str
 
@@ -730,7 +916,7 @@ class AIChatPage(QWidget):
                 child.widget().deleteLater()
 
         self.add_message_bubble("user", text)
-        self.repo.save_message("user", text, chat_context=self.chat_context)
+        self.repo.save_message("user", text, project_id=getattr(self, 'project_id', None), chat_context=self.chat_context, session_id=getattr(self, 'current_session_id', None))
 
         context = self.get_recent_context()
         system_prompt = self.compiler.compile_system_prompt()
@@ -754,7 +940,7 @@ class AIChatPage(QWidget):
         self.send_btn.setText(" Send")
 
         self.add_message_bubble("assistant", response_text, metadata)
-        self.repo.save_message("assistant", response_text, chat_context=self.chat_context)
+        self.repo.save_message("assistant", response_text, project_id=getattr(self, 'project_id', None), chat_context=self.chat_context, session_id=getattr(self, 'current_session_id', None))
 
         provider = metadata.get("provider", "AI")
         model = metadata.get("model", "")
@@ -779,4 +965,58 @@ class AIChatPage(QWidget):
 
     def minimumSizeHint(self):
         return QSize(300, 200)
+
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        
+        if hasattr(self, 'insights_panel'):
+            self.insights_panel.apply_theme_colors(pal)
+            
+        if hasattr(self, 'history_container'):
+            self.history_container.setStyleSheet(f"background-color: {self.palette.bg_app};")
+            
+        if hasattr(self, 'scroll_area'):
+            self.scroll_area.setStyleSheet(f"""
+                QScrollArea {{
+                    background-color: {self.palette.bg_app};
+                    border: none;
+                }}
+                QScrollBar:vertical {{
+                    background: transparent;
+                    width: 4px;
+                }}
+                QScrollBar::handle:vertical {{
+                    background: {self.palette.border_card};")
+                    border-radius: 2px;
+                }}
+                QScrollBar::handle:vertical:hover {{
+                    background: {self.palette.accent};
+                }}
+            """)
+            
+        if hasattr(self, 'history_layout'):
+            for i in range(self.history_layout.count()):
+                item = self.history_layout.itemAt(i)
+                if item and item.widget():
+                    w = item.widget()
+                    if isinstance(w, ChatMessageWidget):
+                        w.apply_theme_colors(pal)
+                    elif type(w) is QFrame:
+                        # Handle empty state
+                        for child in w.findChildren(QFrame):
+                            if child.width() == 48 and child.height() == 48:
+                                child.setStyleSheet(f"background-color: {self.palette.bg_card}; border-radius: 24px; border: 1px solid {self.palette.border_card};")
+                        for lbl in w.findChildren(QLabel):
+                            if "Initialized" in lbl.text():
+                                lbl.setStyleSheet(f"color: {self.palette.fg_primary}; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+                            elif "synced" in lbl.text():
+                                lbl.setStyleSheet(f"color: {self.palette.fg_muted}; font-family: 'Inter', sans-serif; font-size: 13px; background: transparent; border: none;")
+
+        # We can also quickly update the input dock and top bar styling that might be stale:
+        # Re-style main QFrames to ensure backgrounds are updated
+        for frame in self.findChildren(QFrame):
+            # Only update those we can safely identify or fallback to general styles if needed.
+            # Here we just rely on specific properties if they need an update.
+            pass
 

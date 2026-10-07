@@ -1,3 +1,4 @@
+from app.core.palette import get_current_palette
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QTextEdit, QComboBox, QPushButton, QMessageBox
@@ -12,47 +13,48 @@ class ProjectDialog(QDialog):
         self.setWindowTitle("Edit Project" if project_data else "New Project")
         self.setMinimumWidth(460)
         self.project_data = project_data
+        self.palette = get_current_palette()
 
-        self.setStyleSheet("""
-            QDialog {
+        self.setStyleSheet(f"""
+            QDialog {{
                 background-color: #101623;
-                border: 1px solid #1e293b;
+                border: 1px solid {self.palette.border_card};
                 border-radius: 10px;
-            }
-            QLabel {
+            }}
+            QLabel {{
                 background: transparent;
-                color: #94a3b8;
+                color: {self.palette.fg_muted};
                 font-size: 12px;
                 font-weight: 600;
-            }
-            QLineEdit, QTextEdit {
+            }}
+            QLineEdit, QTextEdit {{
                 background-color: #191b22;
                 border: 1px solid #334155;
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-size: 13px;
                 padding: 6px 10px;
-            }
-            QLineEdit:focus, QTextEdit:focus {
-                border-color: #2196f3;
-            }
-            QComboBox {
+            }}
+            QLineEdit:focus, QTextEdit:focus {{
+                border-color: {self.palette.accent};
+            }}
+            QComboBox {{
                 background-color: #191b22;
                 border: 1px solid #334155;
                 border-radius: 6px;
-                color: #f1f5f9;
+                color: {self.palette.fg_primary};
                 font-size: 13px;
                 padding: 6px 10px;
-            }
-            QComboBox:focus {
-                border-color: #2196f3;
-            }
-            QComboBox QAbstractItemView {
+            }}
+            QComboBox:focus {{
+                border-color: {self.palette.accent};
+            }}
+            QComboBox QAbstractItemView {{
                 background-color: #191b22;
-                color: #f1f5f9;
-                selection-background-color: #2196f3;
+                color: {self.palette.fg_primary};
+                selection-background-color: {self.palette.accent};
                 border: 1px solid #334155;
-            }
+            }}
         """)
 
         layout = QVBoxLayout(self)
@@ -61,7 +63,7 @@ class ProjectDialog(QDialog):
 
         # Header Title
         dlg_title = QLabel("Edit Project Details" if project_data else "Create New Project")
-        dlg_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px;")
+        dlg_title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {self.palette.fg_primary}; margin-bottom: 4px;")
         layout.addWidget(dlg_title)
 
         # Name
@@ -85,6 +87,13 @@ class ProjectDialog(QDialog):
         self.tech_input.setPlaceholderText("e.g. Python, PySide6, SQLite")
         layout.addWidget(self.tech_input)
 
+        # Key Features
+        layout.addWidget(QLabel("Key Features (Markdown):"))
+        self.features_input = QTextEdit()
+        self.features_input.setMaximumHeight(90)
+        self.features_input.setPlaceholderText("List core features...")
+        layout.addWidget(self.features_input)
+
         # Status
         layout.addWidget(QLabel("Status:"))
         self.status_combo = QComboBox()
@@ -97,6 +106,7 @@ class ProjectDialog(QDialog):
             self.name_input.setText(self.project_data.get("name") or "")
             self.desc_input.setText(self.project_data.get("description") or "")
             self.tech_input.setText(self.project_data.get("technology_stack") or "")
+            self.features_input.setText(self.project_data.get("features") or "")
             status = self.project_data.get("status") or "Planning"
             idx = self.status_combo.findText(status)
             if idx >= 0:
@@ -110,41 +120,41 @@ class ProjectDialog(QDialog):
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setFixedHeight(34)
         self.cancel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1e293b;
+        self.cancel_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.border_card};
                 border: 1px solid #334155;
                 border-radius: 6px;
-                color: #cbd5e1;
+                color: #B1B7AB;
                 font-size: 12px;
                 font-weight: 500;
                 padding: 0 16px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #283548;
                 color: #ffffff;
-            }
+            }}
         """)
 
         self.save_btn = QPushButton("Save Changes" if project_data else "Create Project")
         self.save_btn.setFixedHeight(34)
         self.save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        self.save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 6px;
                 color: #ffffff;
                 font-size: 12px;
                 font-weight: 600;
                 padding: 0 18px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #1e88e5;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #1565c0;
-            }
+            }}
         """)
 
         self.save_btn.clicked.connect(self.validate_and_accept)
@@ -165,6 +175,7 @@ class ProjectDialog(QDialog):
         return {
             "name": self.name_input.text().strip(),
             "description": self.desc_input.toPlainText().strip(),
+            "features": self.features_input.toPlainText().strip(),
             "tech_stack": self.tech_input.text().strip(),
             "status": self.status_combo.currentText()
         }

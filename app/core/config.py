@@ -2,8 +2,7 @@ import json
 from pathlib import Path
 from app.core.metadata import APP_NAME, APP_VERSION
 
-def get_config_path():
-    return Path(__file__).resolve().parent.parent.parent / "config.json"
+from app.core.paths import get_config_path
 
 def load_config():
     config_path = get_config_path()

@@ -1,39 +1,208 @@
-# Forge Hub
+# ForgeHub
 
-Forge Hub is a native desktop application designed as a **personal professional AI manager**. It goes beyond standard chatbots to provide an AI-powered project management, professional profile tracking, content creation, and personalized memory system.
+A modular AI development platform for working with multiple Large Language Models through a unified interface.
 
-## 🚀 Key Features (In Development)
+## Overview
 
-- **Project Management**: Track active projects, manage tasks, and maintain repository documentation entirely locally.
-- **Professional Profile**: Curate your technical skills, hackathons, certificates, and achievements in one centralized view.
-- **AI Content Orchestration**: Seamlessly integrate with multiple AI providers (Gemini, Groq, Cerebras, Mistral) through dynamic model discovery and smart, task-based routing.
-- **Professional Posting Advisor**: AI evaluates whether an accomplishment improves your professional profile and suggests how to announce it on LinkedIn or GitHub.
-- **Long-Term Memory**: The system builds an ongoing understanding of your writing style, preferences, and project history without redundantly sending your entire chat history to APIs.
+ForgeHub is a Python-based application designed to simplify interaction with multiple LLM providers through a single system.
 
-## 🛠 Technology Stack
+Instead of tightly coupling the application to one model or provider, ForgeHub uses an abstraction and routing layer that allows requests to be processed through different AI models while maintaining a consistent application workflow.
 
-- **Language**: Python 3.10+
-- **GUI Framework**: PySide6 (Qt 6)
-- **Local Storage**: SQLite
-- **Architecture**: Modular, local-first, independent AI orchestration
+The project focuses on practical AI application engineering, API integration, database management, and modular Python architecture.
 
-## 📈 Current Progress
+## Features
 
-**Phase 1-11 Completed & Hardened:** The foundational shell, database architecture, UI integrations, and project/profile management systems are fully functional. The backend Provider Adapter architecture is securely connected to the UI via OS Keyring storage. The intelligent `ModelRouter` layer features NLP Task Detection, routing prompts dynamically through background threads. A persistent AI memory system automatically extracts and injects core factual contexts via the `ContextCompiler`, forming a true long-term memory system.
+* Multi-LLM integration
+* Unified interface for different AI models
+* Intelligent request routing
+* API-based model communication
+* Configurable model selection
+* Persistent application data
+* SQLite database integration
+* Modular Python architecture
+* Error handling and API failure management
+* Structured request and response processing
 
-*A massive 24-point UI-UX codebase audit has also been completed, bringing the application shell into full compliance with the core design docs. This includes fully dynamic Dashboards, tabbed Settings & Memory pages, and AI Transparency tracking in the Chat interface.*
+## Tech Stack
 
-## 💻 Getting Started
+### Backend
 
-Forge Hub runs locally and does **not** require API keys to function as a project manager, although adding API keys in the Settings unlocks its AI orchestration capabilities.
+* Python
+* Flask
+* REST APIs
 
-### Installation
+### AI / LLM
 
-1. Clone the repository
-2. Set up a virtual environment: `python3 -m venv venv`
-3. Activate the environment: `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate` (Windows)
-4. Install dependencies: `pip install PySide6`
-5. Run the application: `python main.py`
+* Multiple LLM APIs
+* Prompt engineering
+* Model routing
+* API-based inference
 
-## 🛡 Security & Privacy
-All project data, professional profiles, and memory logs are stored **locally** on your device using SQLite. API Keys are managed securely and never hard-coded or logged. Only relevant, compiled context is sent to AI Providers during generation.
+### Database
+
+* SQLite
+
+### Data & Communication
+
+* JSON
+* HTTP / REST
+* API integration
+
+### Tools
+
+* Git
+* GitHub
+* VS Code
+
+## Architecture
+
+```text id="x8d3m1"
+                    User Request
+                         |
+                         v
+                 ForgeHub Backend
+                         |
+                         v
+                 Request Router
+                    /    |    \
+                   /     |     \
+                  v      v      v
+              Model A  Model B  Model C
+                  \      |      /
+                   \     |     /
+                    v    v    v
+                 Response Handler
+                         |
+                         v
+                    User Response
+```
+
+The routing layer separates application logic from individual model providers, making it easier to add, replace, or configure models without restructuring the entire application.
+
+## Project Structure
+
+```text id="7q2f8v"
+ForgeHub/
+├── app/
+│   ├── routes/
+│   ├── services/
+│   ├── models/
+│   └── ...
+├── database/
+├── templates/
+├── static/
+├── tests/
+├── README.md
+├── requirements.txt
+└── run.py
+```
+
+Update the structure to match the actual repository before publishing.
+
+## Core Components
+
+### LLM Routing
+
+ForgeHub provides a common workflow for interacting with different language models rather than building separate application logic for every provider.
+
+### API Integration
+
+The application communicates with external AI services through APIs and handles request construction, responses, errors, and provider-specific requirements.
+
+### Database Layer
+
+SQLite is used for persistent application data and configuration-related information.
+
+### Modular Architecture
+
+Application responsibilities are separated into different components to keep routing, AI services, database operations, and application logic maintainable.
+
+## Example Workflow
+
+```text id="r8q1vl"
+User enters prompt
+        |
+        v
+Request validation
+        |
+        v
+Model / provider selection
+        |
+        v
+API request
+        |
+        v
+LLM response
+        |
+        v
+Response processing
+        |
+        v
+Final output
+```
+
+## Screenshots
+
+If the application has a usable interface, include **2–4 screenshots**.
+
+### Main Interface
+
+```text id="m4w2qa"
+![ForgeHub Interface](screenshots/home.png)
+```
+
+### Model Selection / Routing
+
+```text id="c7x9pn"
+![Model Selection](screenshots/models.png)
+```
+
+### AI Response
+
+```text id="q2j5rs"
+![AI Response](screenshots/response.png)
+```
+
+Only include screenshots that demonstrate meaningful functionality.
+
+## What I Learned
+
+Building ForgeHub provided practical experience with:
+
+* Python application architecture
+* REST API integration
+* Working with multiple LLM providers
+* Designing abstraction layers for external APIs
+* Request and response handling
+* Database integration with SQLite
+* Error handling and API failures
+* Modular application design
+* Managing configuration and external services
+* Building practical AI-powered applications
+
+## Future Improvements
+
+* Additional LLM providers
+* More advanced routing strategies
+* Provider performance comparison
+* Usage and latency tracking
+* Token/cost monitoring
+* Expanded automated testing
+* Authentication and user management
+* Production deployment
+
+## Status
+
+**Personal Project — Active Development**
+
+ForgeHub is being developed as a practical platform for experimenting with multi-model AI applications and scalable API-based architecture.
+
+## Author
+
+**Mantra Bareda**
+
+B.Tech — Computer Science & Engineering (Artificial Intelligence)
+Mandsaur University
+
+[GitHub](YOUR_GITHUB_URL) · [LinkedIn](YOUR_LINKEDIN_URL)
+

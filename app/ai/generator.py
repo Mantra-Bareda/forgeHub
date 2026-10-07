@@ -35,11 +35,24 @@ class ContentGenerator:
             "Include sections like: Project Title, Description, Features, Tech Stack, Installation/Usage (if applicable)."
         )
         
+        # Inject Research Data
+        import json
+        research_context = ""
+        if project.get('research_data'):
+            try:
+                r_data = json.loads(project['research_data'])
+                usp = r_data.get('usp', '')
+                content_pos = r_data.get('content_positioning', '')
+                research_context = f"\n\n[AI RESEARCH CONTEXT]\n--- USP & Differentiation ---\n{usp}\n\n--- Content & Positioning ---\n{content_pos}\n(Use these insights to craft a highly compelling, non-generic README.)"
+            except: pass
+
         prompt = (
             f"Project Name: {project['name']}\n"
             f"Description: {project['description']}\n"
+            f"Features: {project.get('features', '')}\n"
             f"Technology Stack: {project['technology_stack']}\n"
-            f"Status: {project['status']}\n\n"
+            f"Status: {project['status']}\n"
+            f"{research_context}\n\n"
             f"Additional instructions: {custom_instructions}"
         )
         
@@ -94,18 +107,29 @@ class ContentGenerator:
     def generate_linkedin_post(self, source_type: str, item_id: int, custom_instructions: str = "") -> str:
         data_str = ""
         
+        # Fetch past media history for better suggestions
+        try:
+            posts = self.prof_repo.get_linkedin_posts()
+            past_media = [p.get('media_description', '') for p in posts if p.get('media_description')]
+            past_media_str = "\n".join(past_media[-5:]) if past_media else "None"
+            data_str += f"\n\n[Context] Past successful media attachments used: {past_media_str}\n"
+        except Exception:
+            pass
+            
+
+        
         if source_type == "Project":
             p = self.proj_repo.get_project(item_id)
-            if p: data_str = f"Project '{p['name']}' using {p['technology_stack']}. Status: {p['status']}. {p['description']}"
+            if p: data_str += f"Project '{p['name']}' using {p['technology_stack']}. Status: {p['status']}. {p['description']}"
         elif source_type == "Certificate":
             c = self.cert_repo.get_certificate(item_id)
-            if c: data_str = f"Certificate '{c['title']}' from {c['issuer']}, earned {c['issue_date']}."
+            if c: data_str += f"Certificate '{c['title']}' from {c['issuer']}, earned {c['issue_date']}."
         elif source_type == "Hackathon":
             h = self.hack_repo.get_hackathon(item_id)
-            if h: data_str = f"Hackathon '{h['event_name']}', Project: {h['project_submitted']}, Standing: {h['standing']}."
+            if h: data_str += f"Hackathon '{h['event_name']}', Project: {h['project_submitted']}, Standing: {h['standing']}."
         else: # Achievement
             a = self.prof_repo.get_achievement(item_id)
-            if a: data_str = f"Achievement '{a['title']}' ({a['type']}): {a['description']} on {a['date_achieved']}."
+            if a: data_str += f"Achievement '{a['title']}' ({a['type']}): {a['description']} on {a['date_achieved']}."
             
         if not data_str:
             return "Item not found."
@@ -114,7 +138,9 @@ class ContentGenerator:
             "You are an expert LinkedIn ghostwriter for tech professionals.\n"
             "Write an engaging, professional, and authentic LinkedIn post.\n"
             "Do NOT use heavy jargon unless necessary. Do NOT sound overly generic or overly excited.\n"
-            "Use a clear hook, provide value or insights learned, and close with a gentle call to action or question."
+            "Use a clear hook, provide value or insights learned, and close with a gentle call to action or question.\n"
+            "IMPORTANT: Always include placeholders where the user should tag relevant people, companies, or credential issuers (e.g., '<Tag the company or organization>').\n"
+            "Also, at the very end of the post, add a '[Suggested Media]' section explicitly recommending exactly what kind of images/videos to attach (e.g., '[Suggested Media: Post your certificate, or a screenshot of the application working, or a quick demo video]')."
         )
         
         prompt = (

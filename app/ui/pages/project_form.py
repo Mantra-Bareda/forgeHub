@@ -8,231 +8,80 @@ from PySide6.QtGui import QCursor, QFont
 import os
 
 from app.ui.components.icons import get_svg_icon
-
-
-class ReadmeDropArea(QTextEdit):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.setPlaceholderText("Type README Markdown content here or drag & drop a .md / .txt file...")
-        self.setFont(QFont("monospace", 10))
-        self.setStyleSheet("""
-            QTextEdit {
-                background-color: #0c0e14;
-                border: 1px dashed #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-family: 'JetBrains Mono', 'Courier New', monospace;
-                font-size: 12px;
-                line-height: 1.4;
-                padding: 12px;
-            }
-            QTextEdit:focus {
-                border: 1px solid #2196f3;
-            }
-        """)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        if urls:
-            path = urls[0].toLocalFile()
-            if os.path.exists(path) and (path.endswith('.md') or path.endswith('.txt')):
-                try:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        self.setPlainText(f.read())
-                    event.acceptProposedAction()
-                except Exception as e:
-                    QMessageBox.warning(self, "Read Error", f"Could not read file: {e}")
-            else:
-                QMessageBox.warning(self, "Invalid File", "Please drop a .md or .txt file.")
-        else:
-            super().dropEvent(event)
+from app.core.palette import ColorPalette
+from app.core.theme import get_current_palette, theme_manager
 
 
 class ProjectFormWidget(QWidget):
-    saved = Signal()
+    saved = Signal(int)
     cancelled = Signal()
 
     def __init__(self, db_manager):
         super().__init__()
         self.db = db_manager
-
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #0b0f17;
-            }
-            QLabel {
-                background: transparent;
-            }
-        """)
+        self.palette = get_current_palette()
+        self.setObjectName("projectFormRoot")
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(28, 20, 28, 24)
         main_layout.setSpacing(16)
 
         # Top Header Bar
-        header_frame = QFrame()
-        header_frame.setObjectName("headerFrame")
-        header_frame.setStyleSheet("""
-            #headerFrame {
-                background-color: #101623;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-                padding: 12px 16px;
-            }
-            #headerFrame QLabel {
-                background: transparent;
-            }
-        """)
-        header_layout = QHBoxLayout(header_frame)
+        self.header_frame = QFrame()
+        self.header_frame.setObjectName("headerFrame")
+        header_layout = QHBoxLayout(self.header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(14)
 
         # Back / Cancel button
-        back_btn = QPushButton()
-        back_btn.setIcon(get_svg_icon("arrow_back", "#94a3b8", 16))
-        back_btn.setText(" Cancel")
-        back_btn.setFixedHeight(32)
-        back_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1e293b;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #cbd5e1;
-                font-size: 12px;
-                font-weight: 500;
-                padding: 0 12px;
-            }
-            QPushButton:hover {
-                background-color: #283548;
-                border-color: #2196f3;
-                color: #ffffff;
-            }
-        """)
-        back_btn.clicked.connect(self.cancelled.emit)
-        header_layout.addWidget(back_btn)
+        self.back_btn = QPushButton()
+        self.back_btn.setObjectName("backBtn")
+        self.back_btn.setText(" Cancel")
+        self.back_btn.setFixedHeight(32)
+        self.back_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.back_btn.clicked.connect(self.cancelled.emit)
+        header_layout.addWidget(self.back_btn)
 
-        sep = QFrame()
-        sep.setFixedWidth(1)
-        sep.setFixedHeight(24)
-        sep.setStyleSheet("background-color: #1e293b;")
-        header_layout.addWidget(sep)
+        self.sep = QFrame()
+        self.sep.setObjectName("sep")
+        self.sep.setFixedWidth(1)
+        self.sep.setFixedHeight(24)
+        header_layout.addWidget(self.sep)
 
         title_col = QVBoxLayout()
         title_col.setContentsMargins(0, 0, 0, 0)
         title_col.setSpacing(2)
 
-        header_title = QLabel("Create New Project Workspace")
-        header_title.setStyleSheet("font-size: 18px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.3px;")
-        title_col.addWidget(header_title)
+        self.header_title = QLabel("Create New Project Workspace")
+        self.header_title.setObjectName("headerTitle")
+        title_col.addWidget(self.header_title)
 
-        header_sub = QLabel("Configure repository metadata, documentation, and automated social integrations.")
-        header_sub.setStyleSheet("font-size: 12px; color: #64748b;")
-        title_col.addWidget(header_sub)
+        self.header_sub = QLabel("Configure repository metadata and features.")
+        self.header_sub.setObjectName("headerSub")
+        title_col.addWidget(self.header_sub)
 
         header_layout.addLayout(title_col, 1)
 
         # Save Button on Header
         self.save_header_btn = QPushButton()
-        self.save_header_btn.setIcon(get_svg_icon("save", "#ffffff", 14))
+        self.save_header_btn.setObjectName("saveHeaderBtn")
         self.save_header_btn.setText(" Save Project")
         self.save_header_btn.setFixedHeight(32)
         self.save_header_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.save_header_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                border: none;
-                border-radius: 6px;
-                color: #ffffff;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 0 16px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-            QPushButton:pressed {
-                background-color: #1565c0;
-            }
-        """)
         self.save_header_btn.clicked.connect(self.save_project)
         header_layout.addWidget(self.save_header_btn)
 
-        main_layout.addWidget(header_frame)
+        main_layout.addWidget(self.header_frame)
 
         # Scroll area for form
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("""
-            QScrollArea {
-                background: transparent;
-                border: none;
-            }
-            QScrollBar:vertical {
-                background: #0b0f17;
-                width: 6px;
-                margin: 0;
-            }
-            QScrollBar::handle:vertical {
-                background: #1e293b;
-                border-radius: 3px;
-                min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #334155;
-            }
-        """)
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("scrollArea")
+        self.scroll.setWidgetResizable(True)
 
-        form_card = QFrame()
-        form_card.setStyleSheet("""
-            QFrame {
-                background-color: #131b2a;
-                border: 1px solid #1e293b;
-                border-radius: 10px;
-            }
-            QLabel {
-                background: transparent;
-                color: #94a3b8;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            QLineEdit, QTextEdit {
-                background-color: #191b22;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #f1f5f9;
-                font-size: 13px;
-                padding: 8px 12px;
-            }
-            QLineEdit:focus, QTextEdit:focus {
-                border-color: #2196f3;
-            }
-            QCheckBox {
-                color: #cbd5e1;
-                font-size: 13px;
-                background: transparent;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 4px;
-                border: 1px solid #404752;
-                background-color: #191b22;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #2196f3;
-                border-color: #2196f3;
-            }
-        """)
-        self.layout = QVBoxLayout(form_card)
+        self.form_card = QFrame()
+        self.form_card.setObjectName("formCard")
+        
+        self.layout = QVBoxLayout(self.form_card)
         self.layout.setContentsMargins(24, 24, 24, 24)
         self.layout.setSpacing(14)
 
@@ -255,10 +104,6 @@ class ProjectFormWidget(QWidget):
         self.tech_input.setPlaceholderText("e.g. Python, PySide6, SQLite, Redis")
         self.layout.addWidget(self.tech_input)
 
-        self.layout.addWidget(QLabel("README.MD CONTENT *"))
-        self.readme_input = ReadmeDropArea()
-        self.readme_input.setMinimumHeight(180)
-        self.layout.addWidget(self.readme_input)
 
         self.layout.addWidget(QLabel("KEY FEATURES (OPTIONAL)"))
         self.features_input = QTextEdit()
@@ -273,14 +118,14 @@ class ProjectFormWidget(QWidget):
         self.layout.addWidget(self.link_input)
 
         # Integrations
-        sep_int = QFrame()
-        sep_int.setFixedHeight(1)
-        sep_int.setStyleSheet("background-color: #1e293b; margin-top: 10px; margin-bottom: 6px;")
-        self.layout.addWidget(sep_int)
+        self.sep_int = QFrame()
+        self.sep_int.setObjectName("sepInt")
+        self.sep_int.setFixedHeight(1)
+        self.layout.addWidget(self.sep_int)
 
-        int_title = QLabel("CROSS-PLATFORM INTEGRATIONS")
-        int_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #f1f5f9; letter-spacing: 0.5px;")
-        self.layout.addWidget(int_title)
+        self.int_title = QLabel("CROSS-PLATFORM INTEGRATIONS")
+        self.int_title.setObjectName("intTitle")
+        self.layout.addWidget(self.int_title)
 
         self.github_cb = QCheckBox("Track and sync in GitHub repository summary")
         self.layout.addWidget(self.github_cb)
@@ -314,54 +159,142 @@ class ProjectFormWidget(QWidget):
         btn_layout.setSpacing(12)
         btn_layout.addStretch()
 
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setFixedHeight(36)
-        cancel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1e293b;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                color: #cbd5e1;
-                font-size: 13px;
-                font-weight: 500;
-                padding: 0 20px;
-            }
-            QPushButton:hover {
-                background-color: #283548;
-                color: #ffffff;
-            }
-        """)
-        cancel_btn.clicked.connect(self.cancelled.emit)
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setObjectName("cancelBtn")
+        self.cancel_btn.setFixedHeight(36)
+        self.cancel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.cancel_btn.clicked.connect(self.cancelled.emit)
 
-        save_btn = QPushButton("Save Project Workspace")
-        save_btn.setFixedHeight(36)
-        save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
+        self.save_btn = QPushButton("Save Project Workspace")
+        self.save_btn.setObjectName("saveBtn")
+        self.save_btn.setFixedHeight(36)
+        self.save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.save_btn.clicked.connect(self.save_project)
+
+        btn_layout.addWidget(self.cancel_btn)
+        btn_layout.addWidget(self.save_btn)
+        self.layout.addLayout(btn_layout)
+
+        self.scroll.setWidget(self.form_card)
+        main_layout.addWidget(self.scroll, 1)
+
+        self.apply_theme_colors(self.palette)
+
+    def apply_theme_colors(self, pal: ColorPalette):
+        self.palette = pal
+        self.back_btn.setIcon(get_svg_icon("arrow_back", pal.fg_muted, 16))
+        self.save_header_btn.setIcon(get_svg_icon("save", "#ffffff", 14))
+
+        self.setStyleSheet(f"""
+            QWidget#projectFormRoot {{
+                background-color: {self.palette.bg_app};
+            }}
+            QFrame#headerFrame {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 10px;
+                padding: 12px 16px;
+            }}
+            QPushButton#backBtn, QPushButton#cancelBtn {{
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_subtle};
+                border-radius: 6px;
+                color: {self.palette.fg_primary};
+                font-size: 12px;
+                font-weight: 500;
+                padding: 0 12px;
+            }}
+            QPushButton#backBtn:hover, QPushButton#cancelBtn:hover {{
+                background-color: {self.palette.bg_card};
+                border-color: {self.palette.accent};
+                color: {self.palette.fg_primary};
+            }}
+            QFrame#sep {{
+                background-color: {self.palette.border_card};
+            }}
+            QLabel#headerTitle {{
+                font-size: 18px; font-weight: 700; color: {self.palette.fg_primary}; letter-spacing: -0.3px;
+                background: transparent;
+            }}
+            QLabel#headerSub {{
+                font-size: 12px; color: {self.palette.fg_muted};
+                background: transparent;
+            }}
+            QPushButton#saveHeaderBtn, QPushButton#saveBtn {{
+                background-color: {self.palette.accent};
                 border: none;
                 border-radius: 6px;
                 color: #ffffff;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 600;
-                padding: 0 24px;
-            }
-            QPushButton:hover {
-                background-color: #1e88e5;
-            }
-            QPushButton:pressed {
-                background-color: #1565c0;
-            }
+                padding: 0 16px;
+            }}
+            QPushButton#saveHeaderBtn:hover, QPushButton#saveBtn:hover {{
+                background-color: {self.palette.accent};
+            }}
+            QScrollArea#scrollArea {{
+                background: transparent;
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background: {self.palette.bg_app};
+                width: 6px;
+                margin: 0;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {self.palette.border_card};
+                border-radius: 3px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {self.palette.border_subtle};
+            }}
+            QFrame#formCard {{
+                background-color: {self.palette.bg_card};
+                border: 1px solid {self.palette.border_card};
+                border-radius: 10px;
+            }}
+            QFrame#formCard QLabel {{
+                background: transparent;
+                color: {self.palette.fg_muted};
+                font-size: 12px;
+                font-weight: 600;
+            }}
+            QFrame#formCard QLineEdit, QFrame#formCard QTextEdit {{
+                background-color: {self.palette.bg_input};
+                border: 1px solid {self.palette.border_subtle};
+                border-radius: 6px;
+                color: {self.palette.fg_primary};
+                font-size: 13px;
+                padding: 8px 12px;
+            }}
+            QFrame#formCard QLineEdit:focus, QFrame#formCard QTextEdit:focus {{
+                border-color: {self.palette.accent};
+            }}
+            QFrame#formCard QCheckBox {{
+                color: {self.palette.fg_primary};
+                font-size: 13px;
+                background: transparent;
+                spacing: 8px;
+            }}
+            QFrame#formCard QCheckBox::indicator {{
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 1px solid {self.palette.border_subtle};
+                background-color: {self.palette.bg_input};
+            }}
+            QFrame#formCard QCheckBox::indicator:checked {{
+                background-color: {self.palette.accent};
+                border-color: {self.palette.accent};
+            }}
+            QFrame#sepInt {{
+                background-color: {self.palette.border_card}; margin-top: 10px; margin-bottom: 6px;
+            }}
+            QLabel#intTitle {{
+                font-size: 13px; font-weight: 700; color: {self.palette.fg_primary}; letter-spacing: 0.5px;
+            }}
         """)
-        save_btn.clicked.connect(self.save_project)
-
-        btn_layout.addWidget(cancel_btn)
-        btn_layout.addWidget(save_btn)
-        self.layout.addLayout(btn_layout)
-
-        scroll.setWidget(form_card)
-        main_layout.addWidget(scroll, 1)
 
     def toggle_linkedin_post(self, checked):
         self.linkedin_post_label.setVisible(checked)
@@ -373,13 +306,12 @@ class ProjectFormWidget(QWidget):
         name = self.name_input.text().strip()
         desc = self.desc_input.toPlainText().strip()
         tech = self.tech_input.text().strip()
-        readme = self.readme_input.toPlainText().strip()
 
         # Validation
-        if not name or not desc or not tech or not readme:
+        if not name or not desc or not tech:
             QMessageBox.warning(
                 self, "Validation Error", 
-                "Please fill in all mandatory fields:\n• Project Name\n• Description\n• Tech Stack\n• README Markdown"
+                "Please fill in all mandatory fields:\n• Project Name\n• Description\n• Tech Stack"
             )
             return
 
@@ -397,9 +329,8 @@ class ProjectFormWidget(QWidget):
 
         # Save project
         pid = proj_repo.create_project(name, desc, tech, "Planning", features, link, github_added, linkedin_added, linkedin_post)
-
-        # Save README
-        proj_repo.save_document(pid, "README.md", readme)
+        if hasattr(self, 'media_widget'):
+            self.media_widget.save_pending_files(pid)
 
         # Cross-pollinate to GitHub
         if github_added:
@@ -423,7 +354,7 @@ class ProjectFormWidget(QWidget):
 
         QMessageBox.information(self, "Success", "Project saved successfully. Integrations and memory updated.")
         self.clear_form()
-        self.saved.emit()
+        self.saved.emit(pid)
 
     def clear_form(self):
         self.name_input.clear()
@@ -431,7 +362,6 @@ class ProjectFormWidget(QWidget):
         self.tech_input.clear()
         self.features_input.clear()
         self.link_input.clear()
-        self.readme_input.clear()
         self.github_cb.setChecked(False)
         self.linkedin_cb.setChecked(False)
         self.linkedin_post_input.clear()
