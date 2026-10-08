@@ -1,6 +1,0 @@
-# Forge Hub V1.0 - Bugs Fixed
-- Resolved massive layout overflows on X-axis (specifically in the configuration panel) by rebuilding QHBoxLayouts to QVBoxLayout/QGrid.
-- Fixed catastrophic UI theme loading crashes (PyQt syntax failures during f-string QSS compilation) by silencing parsing warnings and auditing stylesheet definitions.
-- Disabled buggy Light Mode / System settings toggle, explicitly mapping Luxury Gold to Light slot correctly.
-- Sanitized hardcoded color blocks out of components into unified dynamic `.palette` variables.
-- Fixed Data Loss bug by separating source directory from Application Data pathing. SQLite and config are now accurately routed to OS AppData folder (e.g. `~/.config/ForgeHub/`).
