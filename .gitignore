@@ -12,12 +12,10 @@ config.json
 # Database
 database/*.db
 
-# IDEs / OS files
-.vscode/
-.DS_Store
+# Agent Data
 .agent/
 
-# Build artifacts
-build/
-dist/
-*.spec
+# Personal Documentation & Versions (Requested)
+docs/
+versions/
+database/models_prefs.json

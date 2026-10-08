@@ -12,24 +12,23 @@ The project focuses on practical AI application engineering, API integration, da
 
 ## Features
 
-* Multi-LLM integration
-* Unified interface for different AI models
-* Intelligent request routing
-* API-based model communication
-* Configurable model selection
-* Persistent application data
-* SQLite database integration
-* Modular Python architecture
-* Error handling and API failure management
-* Structured request and response processing
+* **Multi-LLM Integration:** Unified interface mapping prompts to Gemini, Groq, Mistral, and Cerebras.
+* **Autonomous Deep Web RAG:** Multi-stage web research engine using live scraping (`duckduckgo-search`) and cost-efficient LLM routing (Lightweight vs Reasoning tiers).
+* **AI Content Publishing Advisor:** Automatically assesses project quality, warns against diluting your portfolio with basic projects, and securely writes LinkedIn and GitHub content.
+* **Stale Content Engine:** Editing projects safely prompt-injects existing READMEs to blend in new features without blindly overwriting.
+* **Intelligent API & Key Slots:** Configure multiple API keys per provider, easily copy active model configurations between them, and automatically cascade to lower-tier models during API rate limits.
+* **Data Privacy & Advanced Backups:** Seamlessly export user data (projects, profile, chats, memories) to a structured ZIP, excluding sensitive API keys. Atomic database restorations protect against corruption.
+* **Persistent Memory System:** The AI automatically extracts, deduplicates, and remembers facts about your profile across chats.
+* **Local Media Attachments:** AppData storage for images and PDFs, automatically managed alongside project lifecycles.
 
 ## Tech Stack
 
 ### Backend
 
 * Python
-* Flask
-* REST APIs
+* PySide6 (Desktop GUI)
+* QThreadPool (Async Execution)
+* duckduckgo-search (Web Scraper)
 
 ### AI / LLM
 

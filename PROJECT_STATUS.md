@@ -1,7 +1,7 @@
 # Forge Hub - Project Status
 
-**Last Updated:** 2026-09-04
-**Current Focus:** Phase 11 (Advanced Prompting & Context Compilation)
+**Last Updated:** 2026-10-08
+**Current Focus:** Phase 27 (Packaging & Release Build)
 
 ## 📊 Overall Health
 - **Status:** Stable
@@ -86,7 +86,21 @@
 - [x] Phase 25 (Performance): ThreadPools ensure UI never freezes.
 - [x] Phase 26 (Testing): `pytest` suite guarantees data stability.
 
+### V2.5: The Autonomous RAG & Advanced Data Engine (Completed)
+- [x] **Deep Web Market Research (RAG):** Replaced static AI hallucinations with a multi-step autonomous RAG pipeline (`duckduckgo-search`, `chromadb`, `beautifulsoup4`).
+  - **Phase 1:** Lightweight model generates broad market search queries.
+  - **Phase 2:** Python scrapes live web data.
+  - **Phase 3:** Lightweight model generates deep-dive competitor queries based on live data.
+  - **Phase 4:** Python scrapes deep-dive web data.
+  - **Phase 5:** Reasoning model synthesizes all live data into a highly actionable market roadmap.
+- [x] **Cost-Effective AI Routing:** Explicitly tiered the `ResearchWorker` to use Lightweight (cheaper/faster) models for query generation, and Reasoning models only for final synthesis.
+- [x] **Stale Content Engine:** Editing a project now triggers an alert if old GitHub READMEs or LinkedIn posts exist, using prompt-injection to smartly update old content rather than blindly regenerating.
+- [x] **Publishing Strategy Advisor:** AI analyzes project complexity and proactively warns users if a project is too basic to post on LinkedIn, protecting portfolio quality.
+- [x] **Advanced Data Backup & Restore:** Created a robust `backup_manager.py` that extracts user data (projects, chats, profile) into a structured JSON zip file, explicitly protecting/ignoring sensitive API keys and AI configs. Safe restore validates schemas and uses atomic transactions.
+- [x] **Multi-Key Provider Slots:** Users can configure multiple API keys for a single provider (e.g., 2 Groq keys) and easily copy model configurations (enabled states, rate limits) between them.
+- [x] **Rate Limit Auto-Fallback:** Added global config toggle to automatically cascade to Lightweight models if the Reasoning models hit an API rate limit.
+- [x] **Media Uploads & Storage:** Secure AppData storage for user-uploaded media (PDFs, Images, Docs) wired into Projects and Social posts.
+
 ### Next Steps (Immediate)
-- [x] **Media Uploads & Storage (V2.5 Update):** Added secure internal AppData storage for user-uploaded media (PDFs, Images, Docs). Wired MediaUploadWidget into Projects, LinkedIn Posts, Certificates, and Hackathons for offline tracking and easy downloading.
 - [ ] **Phase 27 - Phase 28: Packaging & Final Polish**
   - Application Icon, PyInstaller bundling, desktop shortcuts, and Release Build.

@@ -1,4 +1,6 @@
-# Forge Hub — Application Flow Document
+> **Note:** These foundational design docs were successfully implemented and have been superseded by the live V2.5 feature set in `PROJECT_STATUS.md`.
+
+# # Forge Hub — Application Flow Document
 
 ## 1. Overall Application Flow
 

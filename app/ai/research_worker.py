@@ -113,7 +113,7 @@ class ResearchWorker(QRunnable):
             # --- PHASE 1: GENERATE COMPETITOR QUERIES ---
             self.signals.progress.emit("Generating market search queries...")
             q1_prompt = "Analyze this app concept. Generate exactly 3 broad Google search queries to discover existing competitors, open-source alternatives, and similar tools in this specific niche. RETURN ONLY A JSON ARRAY OF STRINGS, e.g. [\"query1\", \"query2\", \"query3\"]."
-            q1_response = self._run_ai_with_fallback(router, prompt=q1_prompt, context=app_context)
+            q1_response = self._run_ai_with_fallback(router, prompt=q1_prompt, context=app_context, category="Lightweight")
             if self._is_stopped: return
             
             # Parse Queries
@@ -136,7 +136,7 @@ class ResearchWorker(QRunnable):
             self.signals.progress.emit("Analyzing market data for deep dive...")
             q2_prompt = "Here is an app concept and some raw web data about competitors. Identify the top 2-3 competitors from the raw data. Then, generate exactly 3 highly specific Google search queries to find out their weaknesses, user complaints, and unique selling points (e.g. 'competitor_name disadvantages reddit', 'competitor_name vs'). RETURN ONLY A JSON ARRAY OF STRINGS."
             deep_context = f"App Concept:\n{app_context}\n\nBroad Market Data:\n{info_1}"
-            q2_response = self._run_ai_with_fallback(router, prompt=q2_prompt, context=deep_context)
+            q2_response = self._run_ai_with_fallback(router, prompt=q2_prompt, context=deep_context, category="Lightweight")
             if self._is_stopped: return
             
             try:

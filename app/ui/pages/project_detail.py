@@ -1441,7 +1441,7 @@ class ProjectDetailWidget(QWidget):
                 self._render_updations("")
         else:
             self.current_research_data = None
-            self.research_browser.setPlainText("No research data found. Click 'Regenerate All Research'.")
+            self.research_browser.setPlainText("No research data found. Click 'Generate Actionable Research'.")
             self._render_updations("")
             self._update_publishing_advisor()
 

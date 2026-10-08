@@ -1,4 +1,6 @@
-# Product Requirements Document (PRD)
+> **Note:** These foundational design docs were successfully implemented and have been superseded by the live V2.5 feature set in `PROJECT_STATUS.md`.
+
+# # Product Requirements Document (PRD)
 
 ## 1. Product Overview
 

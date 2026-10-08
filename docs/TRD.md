@@ -1,4 +1,6 @@
-### 1. Document Overview
+> **Note:** These foundational design docs were successfully implemented and have been superseded by the live V2.5 feature set in `PROJECT_STATUS.md`.
+
+# ### 1. Document Overview
 
 **Product:** Forge Hub
 **Type:** Native desktop application
